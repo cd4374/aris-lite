@@ -18,7 +18,7 @@ This skill chains sub-skills into a single automated pipeline:
   (survey)      (brainstorm)    (verify novel)    (critical feedback)  (refine method + plan experiments)
 ```
 
-Each phase builds on the previous one's output. The final deliverables are a validated `IDEA_REPORT.md` with ranked ideas, plus a refined proposal (`refine-logs/FINAL_PROPOSAL.md`) and experiment plan (`refine-logs/EXPERIMENT_PLAN.md`) for the top idea.
+Each phase builds on the previous one's output. The final deliverables are a validated `01_IDEA_REPORT.md` with ranked ideas, plus a refined proposal (`01_FINAL_PROPOSAL.md`) and experiment plan (`02_EXPERIMENT_PLAN.md`) for the top idea. Prefer these canonical prefixed artifacts throughout the workflow; fall back to legacy names only when the canonical file is absent.
 
 ## Constants
 
@@ -29,7 +29,7 @@ Each phase builds on the previous one's output. The final deliverables are a val
 - **AUTO_PROCEED = true** — If user doesn't respond at a checkpoint, automatically proceed with the best option after presenting results. Set to `false` to always wait for explicit user confirmation.
 - **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`). Passed to sub-skills.
 - **ARXIV_DOWNLOAD = false** — When `true`, `/aris-1-1-research-lit` downloads the top relevant arXiv PDFs during Phase 1. When `false` (default), only fetches metadata. Passed through to `/aris-1-1-research-lit`.
-- **COMPACT = false** — When `true`, generate compact summary files for short-context models and session recovery. Writes `IDEA_CANDIDATES.md` (top 3-5 ideas only) at the end of this workflow. Downstream skills read this instead of the full `IDEA_REPORT.md`.
+- **COMPACT = false** — When `true`, generate compact summary files for short-context models and session recovery. Writes `IDEA_CANDIDATES.md` (top 3-5 ideas only) at the end of this workflow. Downstream skills read this instead of the full `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`).
 - **REF_PAPER = false** — Reference paper to base ideas on. Accepts: local PDF path, arXiv URL, or any paper URL. When set, the paper is summarized first (`REF_PAPER_SUMMARY.md`), then idea generation uses it as context. Combine with `base repo` for "improve this paper with this codebase" workflows.
 
 > 💡 These are defaults. Override by telling the skill, e.g., `/aris-0-2-idea-discovery "topic" — ref paper: https://arxiv.org/abs/2406.04329` or `/aris-0-2-idea-discovery "topic" — compact: true`.
@@ -150,9 +150,9 @@ Invoke `/aris-1-4-idea-creator` with the landscape context (and `REF_PAPER_SUMMA
 - Deep validate top ideas (full novelty check + devil's advocate)
 - Run parallel pilot experiments on available GPUs (top 2-3 ideas)
 - Rank by empirical signal
-- Output `IDEA_REPORT.md`
+- Output `01_IDEA_REPORT.md` (canonical; fallback readers may still consume `IDEA_REPORT.md`)
 
-**🚦 Checkpoint:** Present `IDEA_REPORT.md` ranked ideas to the user. Ask:
+**🚦 Checkpoint:** Present `01_IDEA_REPORT.md` ranked ideas to the user. Ask:
 
 ```
 💡 Generated X ideas, filtered to Y, piloted Z. Top results:
@@ -184,7 +184,7 @@ For each top idea (positive pilot signal), run a thorough novelty check:
 - Check for concurrent work (last 3-6 months)
 - Identify closest existing work and differentiation points
 
-**Update `IDEA_REPORT.md`** with deep novelty results. Eliminate any idea that turns out to be already published.
+**Update `01_IDEA_REPORT.md`** with deep novelty results. Eliminate any idea that turns out to be already published.
 
 ### Phase 4: External Critical Review
 
@@ -199,7 +199,7 @@ For the surviving top idea(s), get brutal feedback:
 - Scores the idea, identifies weaknesses, suggests minimum viable improvements
 - Provides concrete feedback on experimental design
 
-**Update `IDEA_REPORT.md`** with reviewer feedback and revised plan.
+**Update `01_IDEA_REPORT.md`** with reviewer feedback and revised plan.
 
 ### Phase 4.5: Method Refinement + Experiment Planning
 
@@ -213,7 +213,7 @@ After review, refine the top idea into a concrete proposal and plan experiments:
 - Freeze a **Problem Anchor** to prevent scope drift
 - Iteratively refine the method via GPT-5.4 review (up to 5 rounds, until score ≥ 9)
 - Generate a claim-driven experiment roadmap with ablations, budgets, and run order
-- Output: `refine-logs/FINAL_PROPOSAL.md`, `refine-logs/EXPERIMENT_PLAN.md`, `refine-logs/EXPERIMENT_TRACKER.md`
+- Output: `01_FINAL_PROPOSAL.md`, `02_EXPERIMENT_PLAN.md`, `02_EXPERIMENT_TRACKER.md` (fallback readers may still consume the legacy `refine-logs/*` files if needed)
 
 **🚦 Checkpoint:** Present the refined proposal summary:
 
@@ -234,7 +234,7 @@ Proceed to implementation? Or adjust the proposal?
 
 ### Phase 5: Final Report
 
-Finalize `IDEA_REPORT.md` with all accumulated information:
+Finalize `01_IDEA_REPORT.md` with all accumulated information:
 
 ```markdown
 # Idea Discovery Report
@@ -265,9 +265,9 @@ Finalize `IDEA_REPORT.md` with all accumulated information:
 [ideas killed at each phase, with reasons]
 
 ## Refined Proposal
-- Proposal: `refine-logs/FINAL_PROPOSAL.md`
-- Experiment plan: `refine-logs/EXPERIMENT_PLAN.md`
-- Tracker: `refine-logs/EXPERIMENT_TRACKER.md`
+- Proposal: `01_FINAL_PROPOSAL.md`
+- Experiment plan: `02_EXPERIMENT_PLAN.md`
+- Tracker: `02_EXPERIMENT_TRACKER.md`
 
 ## Next Steps
 - [ ] /aris-2-1-run-experiment to deploy experiments from the plan
@@ -296,7 +296,7 @@ Write `IDEA_CANDIDATES.md` — a lean summary of the top 3-5 surviving ideas:
 - Next step: /aris-0-3-experiment-bridge or /aris-1-7-research-refine
 ```
 
-This file is intentionally small (~30 lines) so downstream skills and session recovery can read it without loading the full `IDEA_REPORT.md` (~200+ lines).
+This file is intentionally small (~30 lines) so downstream skills and session recovery can read it without loading the full `01_IDEA_REPORT.md` (~200+ lines; fallback: `IDEA_REPORT.md`).
 
 ## Key Rules
 

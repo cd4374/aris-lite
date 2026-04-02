@@ -1,6 +1,8 @@
 ---
 name: aris-3-1-auto-review-loop
-description: "Autonomous multi-round research review loop. Repeatedly reviews using a secondary Codex agent, implements fixes, and re-reviews until positive assessment or max rounds reached. Use when user says \"auto review loop\", \"review until it passes\", or wants autonomous iterative improvement."
+description: Autonomous multi-round research review loop. Repeatedly reviews via Codex MCP, implements fixes, and re-reviews until positive assessment or max rounds reached. Use when user says "auto review loop", "review until it passes", or wants autonomous iterative improvement.
+argument-hint: [topic-or-scope]
+allowed-tools: Bash(*), Read, Grep, Glob, Write, Edit, Agent, Skill, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Auto Review Loop: Autonomous Research Improvement
@@ -13,8 +15,8 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 
 - MAX_ROUNDS = 4
 - POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
-- REVIEW_DOC: `AUTO_REVIEW.md` in project root (cumulative log)
-- REVIEWER_MODEL = `gpt-5.4` — Model used via a secondary Codex agent. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`)
+- REVIEW_DOC: `03_AUTO_REVIEW.md` in project root (cumulative log, canonical)
+- REVIEWER_MODEL = `gpt-5.4` — Model used via Codex MCP. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`)
 - **HUMAN_CHECKPOINT = false** — When `true`, pause after each round's review (Phase B) and present the score + weaknesses to the user. Wait for user input before proceeding to Phase C. The user can: approve the suggested fixes, provide custom modification instructions, skip specific fixes, or stop the loop early. When `false` (default), the loop runs fully autonomously.
 - **COMPACT = false** — When `true`, (1) read `EXPERIMENT_LOG.md` and `findings.md` instead of parsing full logs on session recovery, (2) append key findings to `findings.md` after each round.
 
@@ -27,7 +29,7 @@ Long-running loops may hit the context window limit, triggering automatic compac
 ```json
 {
   "round": 2,
-  "agent_id": "019cd392-...",
+  "threadId": "019cd392-...",
   "status": "in_progress",
   "last_score": 5.0,
   "last_verdict": "not ready",
@@ -49,16 +51,16 @@ Long-running loops may hit the context window limit, triggering automatic compac
    - If it exists AND `status` is `"completed"`: **fresh start** (previous loop finished normally)
    - If it exists AND `status` is `"in_progress"` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
    - If it exists AND `status` is `"in_progress"` AND `timestamp` is within 24 hours: **resume**
-     - Read the state file to recover `round`, `agent_id`, `last_score`, `pending_experiments`
-     - Read `AUTO_REVIEW.md` to restore full context of prior rounds
+     - Read the state file to recover `round`, `threadId`, `last_score`, `pending_experiments`
+     - Read `03_AUTO_REVIEW.md` (fallback: `AUTO_REVIEW.md`) to restore full context of prior rounds
      - If `pending_experiments` is non-empty, check if they have completed (e.g., check screen sessions)
      - Resume from the next round (round = saved round + 1)
      - Log: "Recovered from context compaction. Resuming at Round N."
-2. Read project narrative documents, memory files, and any prior review documents. When `COMPACT = true` and compact files exist, prefer `findings.md` + `EXPERIMENT_LOG.md` over full raw logs.
+2. Read project narrative documents, memory files, and any prior review documents. **When `COMPACT = true` and compact files exist**: read `findings.md` + `EXPERIMENT_LOG.md` instead of full `03_AUTO_REVIEW.md` / `AUTO_REVIEW.md` and raw logs — saves context window.
 3. Read recent experiment results (check output directories, logs)
 4. Identify current weaknesses and open TODOs from prior reviews
 5. Initialize round counter = 1 (unless recovered from state file)
-6. Create/update `AUTO_REVIEW.md` with header and timestamp
+6. Create/update `03_AUTO_REVIEW.md` with header and timestamp
 
 ### Loop (repeat up to MAX_ROUNDS)
 
@@ -67,9 +69,9 @@ Long-running loops may hit the context window limit, triggering automatic compac
 Send comprehensive context to the external reviewer:
 
 ```
-spawn_agent:
-  reasoning_effort: xhigh
-  message: |
+mcp__codex__codex:
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     [Round N/MAX_ROUNDS of autonomous review loop]
 
     [Full research context: claims, methods, results, known weaknesses]
@@ -85,7 +87,7 @@ spawn_agent:
     Be brutally honest. If the work is ready, say so clearly.
 ```
 
-If this is round 2+, use `send_input` with the saved agent id to maintain continuity.
+If this is round 2+, use `mcp__codex__codex-reply` with the saved threadId to maintain conversation context.
 
 #### Phase B: Parse Assessment
 
@@ -133,7 +135,7 @@ Wait for the user's response. Parse their input:
 
 #### Feishu Notification (if configured)
 
-After parsing the score, check if `~/.codex/feishu.json` exists and mode is not `"off"`:
+After parsing the score, check if `~/.claude/feishu.json` exists and mode is not `"off"`:
 - Send a `review_scored` notification: "Round N: X/10 — [verdict]" with top 3 weaknesses
 - If **interactive** mode and verdict is "almost": send as checkpoint, wait for user reply on whether to continue or stop
 - If config absent or mode off: skip entirely (no-op)
@@ -158,11 +160,11 @@ Prioritization rules:
 If experiments were launched:
 - Monitor remote sessions for completion
 - Collect results from output files and logs
-- **Training quality check** — if W&B is configured, invoke `/aris-2-3-training-check` to verify training was healthy (no NaN, no divergence, no plateau). If W&B is not available, skip silently.
+- **Training quality check** — if W&B is configured, invoke `/aris-2-3-training-check` to verify training was healthy (no NaN, no divergence, no plateau). If W&B not available, skip silently. Flag any quality issues in the next review round.
 
 #### Phase E: Document Round
 
-Append to `AUTO_REVIEW.md`:
+Append to `03_AUTO_REVIEW.md`:
 
 ```markdown
 ## Round N (timestamp)
@@ -192,9 +194,9 @@ This is the authoritative record. Do NOT truncate or paraphrase.]
 - [continuing to round N+1 / stopping]
 ```
 
-**Write `REVIEW_STATE.json`** with current round, agent id, score, verdict, and any pending experiments.
+**Write `REVIEW_STATE.json`** with current round, threadId, score, verdict, and any pending experiments.
 
-**Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round.
+**Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round:
 
 ```markdown
 - [Round N] [positive/negative/unexpected]: [one-sentence finding] (metric: X.XX → Y.YY)
@@ -207,25 +209,27 @@ Increment round counter → back to Phase A.
 When loop ends (positive assessment or max rounds):
 
 1. Update `REVIEW_STATE.json` with `"status": "completed"`
-2. Write final summary to `AUTO_REVIEW.md`
+2. Write final summary to `03_AUTO_REVIEW.md`
 3. Update project notes with conclusions
-4. **Write method/pipeline description** to `AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph summary of the final method, architecture, and data flow. This serves as direct input for `/aris-4-3-paper-illustration`.
-5. **Generate claims from results** — invoke `/aris-3-2-result-to-claim` to convert experiment results from `AUTO_REVIEW.md` into structured paper claims. Output: `CLAIMS_FROM_RESULTS.md`. If `/aris-3-2-result-to-claim` is unavailable, skip silently.
+4. **Write method/pipeline description** to `03_AUTO_REVIEW.md` under a `## Method Description` section — a concise 1-2 paragraph description of the final method, its architecture, and data flow. This serves as input for `/aris-4-3-paper-illustration` in Workflow 3 (so it can generate architecture diagrams automatically).
+5. **Generate claims from results** — invoke `/aris-3-2-result-to-claim` to convert experiment results from `03_AUTO_REVIEW.md` into structured paper claims. Output: `03_CLAIMS_FROM_RESULTS.md`. This bridges Workflow 2 → Workflow 3 so `/aris-4-1-paper-plan` can directly use validated claims instead of extracting them from scratch. If `/aris-3-2-result-to-claim` is not available, skip silently.
 6. If stopped at max rounds without positive assessment:
    - List remaining blockers
    - Estimate effort needed for each
    - Suggest whether to continue manually or pivot
-7. **Feishu notification** (if configured): Send `pipeline_done` with final score progression table
+5. **Feishu notification** (if configured): Send `pipeline_done` with final score progression table
 
 ## Key Rules
 
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
-- ALWAYS use `reasoning_effort: xhigh` for maximum reasoning depth
-- Save agent id from first call, use `send_input` for subsequent rounds
+- ALWAYS use `config: {"model_reasoning_effort": "xhigh"}` for maximum reasoning depth
+- Save threadId from first call, use `mcp__codex__codex-reply` for subsequent rounds
+- **Anti-hallucination citations**: When adding references during fixes, NEVER fabricate BibTeX. Use the same DBLP → CrossRef → `[VERIFY]` chain as `/aris-4-4-paper-write`: (1) `curl -s "https://dblp.org/search/publ/api?q=TITLE&format=json"` → get key → `curl -s "https://dblp.org/rec/{key}.bib"`, (2) if not found, `curl -sLH "Accept: application/x-bibtex" "https://doi.org/{doi}"`, (3) if both fail, mark with `% [VERIFY]`. Do NOT generate BibTeX from memory.
 - Be honest — include negative results and failed experiments
 - Do NOT hide weaknesses to game a positive score
 - Implement fixes BEFORE re-reviewing (don't just promise to fix)
+- **Exhaust before surrendering** — before marking any reviewer concern as "cannot address": (1) try at least 2 different solution paths, (2) for experiment issues, adjust hyperparameters or try an alternative baseline, (3) for theory issues, provide a weaker version of the result or an alternative argument, (4) only then concede narrowly and bound the damage. Never give up on the first attempt.
 - If an experiment takes > 30 minutes, launch it and continue with other fixes while waiting
 - Document EVERYTHING — the review log should be self-contained
 - Update project notes after each round, not just at the end
@@ -233,10 +237,10 @@ When loop ends (positive assessment or max rounds):
 ## Prompt Template for Round 2+
 
 ```
-send_input:
-  id: [saved from round 1]
-  reasoning_effort: xhigh
-  message: |
+mcp__codex__codex-reply:
+  threadId: [saved from round 1]
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     [Round N update]
 
     Since your last review, we have:

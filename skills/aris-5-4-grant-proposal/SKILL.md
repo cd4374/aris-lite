@@ -163,11 +163,11 @@ Parse `$ARGUMENTS` to extract:
 
 Then gather context from the project directory:
 
-1. Read `IDEA_REPORT.md` if it exists (from `/aris-0-2-idea-discovery`)
-2. Read `refine-logs/FINAL_PROPOSAL.md` if it exists (from `/aris-1-7-research-refine`)
-3. Read `refine-logs/EXPERIMENT_PLAN.md` if it exists (from `/aris-1-8-experiment-plan`)
-4. Read `AUTO_REVIEW.md` if it exists (from `/aris-3-1-auto-review-loop` — prior review feedback is gold for grants)
-5. Read `NARRATIVE_REPORT.md` or `STORY.md` if they exist
+1. Read `01_IDEA_REPORT.md` first (fallback: `IDEA_REPORT.md`) if it exists (from `/aris-0-2-idea-discovery`)
+2. Read `01_FINAL_PROPOSAL.md` first (fallback: `refine-logs/FINAL_PROPOSAL.md`) if it exists (from `/aris-1-7-research-refine`)
+3. Read `02_EXPERIMENT_PLAN.md` first (fallback: `refine-logs/EXPERIMENT_PLAN.md`) if it exists (from `/aris-1-8-experiment-plan`)
+4. Read `03_AUTO_REVIEW.md` first (fallback: `AUTO_REVIEW.md`) if it exists (from `/aris-3-1-auto-review-loop` — prior review feedback is gold for grants)
+5. Read `04_NARRATIVE_REPORT.md` first (fallback: `NARRATIVE_REPORT.md` or `STORY.md`) if they exist
 6. Read any existing literature notes or survey documents
 7. Scan for the user's publication list (e.g., `publications.md`, `cv.md`, `bio.md`, `CV.pdf`)
 8. Check for `grant-proposal/GRANT_STATE.json` (resume from prior interrupted run)
@@ -176,7 +176,7 @@ If insufficient context exists:
 - No research idea at all → suggest running `/aris-0-2-idea-discovery` first
 - No literature survey → will invoke `/aris-1-1-research-lit` inline in Phase 1
 - No publication list → leave PI qualification section with `[TODO: Add publications]` placeholders
-- Has AUTO_REVIEW.md → extract reviewer feedback and use it to strengthen the feasibility narrative
+- Has `03_AUTO_REVIEW.md` (fallback: `AUTO_REVIEW.md`) → extract reviewer feedback and use it to strengthen the feasibility narrative
 
 ### Phase 1: Literature & Landscape Positioning
 
@@ -327,7 +327,7 @@ Draft each section according to the grant type template. Write **complete prose*
 
 **What this does:**
 - Writes all required sections in the agency-specific language and tone
-- Pulls content from IDEA_REPORT.md, FINAL_PROPOSAL.md, and literature notes
+- Pulls content from `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, and literature notes (fallback to legacy names only when canonical files are absent)
 - Uses `/aris-4-3-paper-illustration` for figure generation (if user requests)
 - Leaves `[TODO]` only for PI-specific information, `[AMOUNT]` for budget figures
 - Outputs `grant-proposal/GRANT_PROPOSAL.md`
@@ -404,7 +404,7 @@ Which should I generate? (e.g., "1 and 3", "all", "skip")
 
 #### For Each Section
 
-1. **Pull relevant content** from IDEA_REPORT.md, FINAL_PROPOSAL.md, literature notes
+1. **Pull relevant content** from `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, and literature notes (fallback to legacy names only when canonical files are absent)
 2. **Write complete prose** — no `[TODO]` except for PI-specific information
 3. **Include figure/table placeholders** where appropriate (e.g., `[Figure 1: System architecture]`)
 4. **Cite references properly** — use citation keys, will build bibliography later

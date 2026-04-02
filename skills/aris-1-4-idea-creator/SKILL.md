@@ -156,7 +156,7 @@ Note: Skip this phase if the ideas are purely theoretical or if no GPU is availa
 
 ### Phase 6: Output — Ranked Idea Report
 
-Write a structured report to `IDEA_REPORT.md` in the project root:
+Write a structured report to `01_IDEA_REPORT.md` in the project root (fallback readers may still consume `IDEA_REPORT.md` when the canonical file is absent):
 
 ```markdown
 # Research Idea Report

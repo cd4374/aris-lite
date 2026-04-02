@@ -123,7 +123,7 @@ Skill 会自动检测并使用 `mcp__minimax-chat__minimax_chat` 工具。
         └── SKILL.md                 # MiniMax 版
 
 项目目录/
-├── AUTO_REVIEW.md                   # 审查日志（自动生成）
+├── 03_AUTO_REVIEW.md                # canonical 审查日志（自动生成）
 └── REVIEW_STATE.json                # 状态持久化（自动生成）
 ```
 

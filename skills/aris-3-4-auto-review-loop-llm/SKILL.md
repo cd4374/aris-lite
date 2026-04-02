@@ -15,7 +15,7 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 
 - MAX_ROUNDS = 4
 - POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
-- REVIEW_DOC: `AUTO_REVIEW.md` in project root (cumulative log)
+- REVIEW_DOC: `03_AUTO_REVIEW.md` in project root (cumulative log; fallback readers may still consume `AUTO_REVIEW.md`)
 
 ## LLM Configuration
 
@@ -165,7 +165,7 @@ Monitor remote experiments
 
 #### Phase E: Document Round
 
-Append to `AUTO_REVIEW.md`:
+Append to `03_AUTO_REVIEW.md` (fallback readers may still consume `AUTO_REVIEW.md`):
 
 ```markdown
 ## Round N (timestamp)

@@ -1,6 +1,6 @@
 # Idea Candidates
 
-> **Curated pool of viable ideas that survived novelty check and review.** Unlike `IDEA_REPORT.md` (raw brainstorm output with all 8-12 ideas), this file only contains ideas that are worth pursuing — filtered, scored, and ready to be selected.
+> **Curated pool of viable ideas that survived novelty check and review.** Unlike `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`, raw brainstorm output with all 8-12 ideas), this file only contains ideas that are worth pursuing — filtered, scored, and ready to be selected.
 >
 > When the current idea fails (result-to-claim negative, or pivot needed), pick the next candidate from here instead of re-running the entire idea discovery pipeline.
 
@@ -36,7 +36,7 @@
 ### [Killed Idea Name]
 - **Kill reason**: [Why — e.g., not novel (found prior work X), infeasible (needs Y data), pilot negative]
 - **Kill date**: YYYY-MM-DD
-- **Source**: IDEA_REPORT.md, Idea #N
+- **Source**: 01_IDEA_REPORT.md, Idea #N
 
 ## Idea Switch Log
 

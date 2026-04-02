@@ -1,6 +1,7 @@
 ---
 name: aris-1-9-research-refine-pipeline
-description: "Run an end-to-end workflow that chains `aris-1-7-research-refine` and `aris-1-8-experiment-plan`. Use when the user wants a one-shot pipeline from vague research direction to focused final proposal plus detailed experiment roadmap, or asks to \"\u4e32\u8d77\u6765\", build a pipeline, do it end-to-end, or generate both the method and experiment plan together."
+description: 'Run an end-to-end workflow that chains `aris-1-7-research-refine` and `aris-1-8-experiment-plan`. Use when the user wants a one-shot pipeline from vague research direction to focused final proposal plus detailed experiment roadmap, or asks to "串起来", build a pipeline, do it end-to-end, or generate both the method and experiment plan together.'
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Agent, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Research Refine Pipeline: End-to-End Method and Experiment Planning
@@ -32,11 +33,13 @@ Do not plan a large experiment suite on top of an unstable method. First stabili
 
 ## Default Outputs
 
-- `refine-logs/FINAL_PROPOSAL.md`
+Prefer canonical writes, with legacy `refine-logs/*` names only as fallback readers when needed:
+
+- `01_FINAL_PROPOSAL.md`
 - `refine-logs/REVIEW_SUMMARY.md`
 - `refine-logs/REFINEMENT_REPORT.md`
-- `refine-logs/EXPERIMENT_PLAN.md`
-- `refine-logs/EXPERIMENT_TRACKER.md`
+- `02_EXPERIMENT_PLAN.md`
+- `02_EXPERIMENT_TRACKER.md`
 - `refine-logs/PIPELINE_SUMMARY.md`
 
 ## Workflow
@@ -44,7 +47,7 @@ Do not plan a large experiment suite on top of an unstable method. First stabili
 ### Phase 0: Triage the Starting Point
 
 - Extract the problem, rough approach, constraints, resources, and target venue.
-- Check whether `refine-logs/FINAL_PROPOSAL.md` already exists and still matches the current request.
+- Check whether `01_FINAL_PROPOSAL.md` already exists and still matches the current request (fallback: `refine-logs/FINAL_PROPOSAL.md`).
 - If the proposal is missing, stale, or materially different from the current request, run the full `aris-1-7-research-refine` stage.
 - If the proposal is already strong and aligned, reuse it and jump to experiment planning.
 - If in doubt, prefer re-running `aris-1-7-research-refine` rather than planning experiments for the wrong method.
@@ -84,7 +87,7 @@ If these answers are not crisp, tighten the final proposal first.
 
 Run the `aris-1-8-experiment-plan` workflow grounded in:
 
-- `refine-logs/FINAL_PROPOSAL.md`
+- `01_FINAL_PROPOSAL.md` (fallback: `refine-logs/FINAL_PROPOSAL.md`)
 - `refine-logs/REVIEW_SUMMARY.md`
 - `refine-logs/REFINEMENT_REPORT.md`
 
@@ -98,7 +101,7 @@ Ensure the experiment plan covers:
 
 ### Phase 4: Integration Summary
 
-Write `refine-logs/PIPELINE_SUMMARY.md`:
+Write `refine-logs/PIPELINE_SUMMARY.md` with canonical artifact references:
 
 ```markdown
 # Pipeline Summary
@@ -109,10 +112,10 @@ Write `refine-logs/PIPELINE_SUMMARY.md`:
 **Date**: [today]
 
 ## Final Deliverables
-- Proposal: `refine-logs/FINAL_PROPOSAL.md`
+- Proposal: `01_FINAL_PROPOSAL.md`
 - Review summary: `refine-logs/REVIEW_SUMMARY.md`
-- Experiment plan: `refine-logs/EXPERIMENT_PLAN.md`
-- Experiment tracker: `refine-logs/EXPERIMENT_TRACKER.md`
+- Experiment plan: `02_EXPERIMENT_PLAN.md`
+- Experiment tracker: `02_EXPERIMENT_TRACKER.md`
 
 ## Contribution Snapshot
 - Dominant contribution:
@@ -142,11 +145,11 @@ Write `refine-logs/PIPELINE_SUMMARY.md`:
 Pipeline complete.
 
 Method output:
-- refine-logs/FINAL_PROPOSAL.md
+- 01_FINAL_PROPOSAL.md
 
 Experiment output:
-- refine-logs/EXPERIMENT_PLAN.md
-- refine-logs/EXPERIMENT_TRACKER.md
+- 02_EXPERIMENT_PLAN.md
+- 02_EXPERIMENT_TRACKER.md
 
 Pipeline summary:
 - refine-logs/PIPELINE_SUMMARY.md
@@ -161,7 +164,7 @@ Best next step:
 
 - Do not let the experiment plan override the Problem Anchor.
 - Do not widen the paper story after method refinement unless a missing validation block is truly necessary.
-- Reuse the same claims across `FINAL_PROPOSAL.md`, `EXPERIMENT_PLAN.md`, and `PIPELINE_SUMMARY.md`.
+- Reuse the same claims across `01_FINAL_PROPOSAL.md`, `02_EXPERIMENT_PLAN.md`, and `PIPELINE_SUMMARY.md`.
 - Keep the main paper story compact.
 - If the method is intentionally simple, defend that simplicity in the experiment plan rather than adding new components.
 - If the method uses a modern LLM / VLM / Diffusion / RL primitive, make its necessity test explicit.
@@ -176,4 +179,3 @@ Best next step:
 /aris-1-8-experiment-plan   -> experiment planning only
 /aris-2-1-run-experiment    -> execution
 ```
-

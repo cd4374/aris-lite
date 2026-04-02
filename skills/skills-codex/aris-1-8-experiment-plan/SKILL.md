@@ -1,6 +1,7 @@
 ---
 name: aris-1-8-experiment-plan
-description: "Turn a refined research proposal or method idea into a detailed, claim-driven experiment roadmap. Use after `aris-1-7-research-refine`, or when the user asks for a detailed experiment plan, ablation matrix, evaluation protocol, run order, compute budget, or paper-ready validation that supports the core problem, novelty, simplicity, and any LLM / VLM / Diffusion / RL-based contribution."
+description: 'Turn a refined research proposal or method idea into a detailed, claim-driven experiment roadmap. Use after `aris-1-7-research-refine`, or when the user asks for a detailed experiment plan, ablation matrix, evaluation protocol, run order, compute budget, or paper-ready validation that supports the core problem, novelty, simplicity, and any LLM / VLM / Diffusion / RL-based contribution.'
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Agent
 ---
 
 # Experiment Plan: Claim-Driven, Paper-Oriented Validation
@@ -20,7 +21,7 @@ The goal is not to generate a giant benchmark wishlist. The goal is to turn a pr
 
 ## Constants
 
-- **OUTPUT_DIR = `refine-logs/`** — Default destination for experiment planning artifacts.
+- **OUTPUT_DIR = `./`** — Canonical destination for experiment planning artifacts (`02_EXPERIMENT_PLAN.md`, `02_EXPERIMENT_TRACKER.md`); fall back to `refine-logs/` only for legacy readers.
 - **MAX_PRIMARY_CLAIMS = 2** — Prefer one dominant claim plus one supporting claim.
 - **MAX_CORE_BLOCKS = 5** — Keep the must-run experimental story compact.
 - **MAX_BASELINE_FAMILIES = 3** — Prefer a few strong baselines over many weak ones.
@@ -32,7 +33,7 @@ The goal is not to generate a giant benchmark wishlist. The goal is to turn a pr
 
 Read the most relevant existing files first if they exist:
 
-- `refine-logs/FINAL_PROPOSAL.md`
+- `01_FINAL_PROPOSAL.md` (fallback: `refine-logs/FINAL_PROPOSAL.md`)
 - `refine-logs/REVIEW_SUMMARY.md`
 - `refine-logs/REFINEMENT_REPORT.md`
 
@@ -121,7 +122,7 @@ Separate **must-run** from **nice-to-have** experiments.
 
 ### Phase 5: Write the Outputs
 
-#### Step 5.1: Write `refine-logs/EXPERIMENT_PLAN.md`
+#### Step 5.1: Write `02_EXPERIMENT_PLAN.md`
 
 Use this structure:
 
@@ -182,7 +183,7 @@ Use this structure:
 - [ ] Nice-to-have runs are separated from must-run runs
 ```
 
-#### Step 5.2: Write `refine-logs/EXPERIMENT_TRACKER.md`
+#### Step 5.2: Write `02_EXPERIMENT_TRACKER.md`
 
 Use this structure:
 
@@ -213,8 +214,8 @@ First three runs to launch:
 2. [run]
 3. [run]
 
-Plan file: refine-logs/EXPERIMENT_PLAN.md
-Tracker file: refine-logs/EXPERIMENT_TRACKER.md
+Plan file: 02_EXPERIMENT_PLAN.md
+Tracker file: 02_EXPERIMENT_TRACKER.md
 ```
 
 ## Key Rules
@@ -239,4 +240,3 @@ Tracker file: refine-logs/EXPERIMENT_TRACKER.md
 /aris-2-1-run-experiment    -> execute the runs
 /aris-3-1-auto-review-loop  -> react to results and iterate on the paper
 ```
-

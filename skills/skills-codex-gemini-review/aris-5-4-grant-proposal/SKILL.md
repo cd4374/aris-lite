@@ -1,5 +1,5 @@
 ---
-name: aris-5-4-grant-proposal
+name: "aris-5-4-grant-proposal"
 description: "Draft a structured grant proposal from research ideas and literature. Supports KAKENHI (Japan), NSF (US), NSFC (China, including 面上/青年/优青/杰青/海外优青/重点), ERC (EU), DFG (Germany), SNSF (Switzerland), ARC (Australia), NWO (Netherlands), and generic formats. Use when user says \"write grant\", \"grant proposal\", \"申請書\", \"write KAKENHI\", \"科研費\", \"基金申请\", \"写基金\", \"NSF proposal\", or wants to turn research ideas into a funding application."
 ---
 
@@ -34,7 +34,7 @@ Grant proposals argue for **future work** (feasibility + potential), not complet
 
 - **GRANT_TYPE = `KAKENHI`** — Default grant type. Supported: `KAKENHI`, `NSF`, `NSFC`, `ERC`, `DFG`, `SNSF`, `ARC`, `NWO`, `GENERIC`. Override via argument (e.g., `/aris-5-4-grant-proposal "topic — NSF"`).
 - **GRANT_SUBTYPE = `auto`** — Sub-type within the grant agency. Examples: KAKENHI `Start-up`/`Wakate`/`Kiban-B`; NSFC `Youth`/`Excellent-Youth`/`Distinguished`/`Overseas`/`Key`; NSF `CAREER`/`CRII`/`Standard`. Auto-detected from argument or defaults to the most common sub-type.
-- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge for proposal review. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
+- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
 - **OUTPUT_FORMAT = `markdown`** — Output format. Supported: `markdown`, `latex`. LaTeX uses grant-specific templates when available.
 - **MAX_REVIEW_ROUNDS = 2** — Maximum external review-revise cycles before finalizing.
 - **OUTPUT_DIR = `grant-proposal/`** — Directory for generated proposal files.
@@ -135,7 +135,7 @@ Grant proposal drafting is a long task that may trigger context compaction. Pers
   "grant_type": "KAKENHI",
   "grant_subtype": "Start-up",
   "language": "Japanese",
-  "thread_id": "019cfcf4-...",
+  "codex_thread_id": "019cfcf4-...",
   "gap_statement": "...",
   "aims_count": 3,
   "status": "in_progress",
@@ -163,11 +163,11 @@ Parse `$ARGUMENTS` to extract:
 
 Then gather context from the project directory:
 
-1. Read `IDEA_REPORT.md` if it exists (from `/aris-0-2-idea-discovery`)
-2. Read `refine-logs/FINAL_PROPOSAL.md` if it exists (from `/aris-1-7-research-refine`)
-3. Read `refine-logs/EXPERIMENT_PLAN.md` if it exists (from `/aris-1-8-experiment-plan`)
-4. Read `AUTO_REVIEW.md` if it exists (from `/aris-3-1-auto-review-loop` — prior review feedback is gold for grants)
-5. Read `NARRATIVE_REPORT.md` or `STORY.md` if they exist
+1. Read `01_IDEA_REPORT.md` first (fallback: `IDEA_REPORT.md`) if it exists (from `/aris-0-2-idea-discovery`)
+2. Read `01_FINAL_PROPOSAL.md` first (fallback: `refine-logs/FINAL_PROPOSAL.md`) if it exists (from `/aris-1-7-research-refine`)
+3. Read `02_EXPERIMENT_PLAN.md` first (fallback: `refine-logs/EXPERIMENT_PLAN.md`) if it exists (from `/aris-1-8-experiment-plan`)
+4. Read `03_AUTO_REVIEW.md` first (fallback: `AUTO_REVIEW.md`) if it exists (from `/aris-3-1-auto-review-loop` — prior review feedback is gold for grants)
+5. Read `04_NARRATIVE_REPORT.md` first (fallback: `NARRATIVE_REPORT.md` or `STORY.md`) if they exist
 6. Read any existing literature notes or survey documents
 7. Scan for the user's publication list (e.g., `publications.md`, `cv.md`, `bio.md`, `CV.pdf`)
 8. Check for `grant-proposal/GRANT_STATE.json` (resume from prior interrupted run)
@@ -176,7 +176,7 @@ If insufficient context exists:
 - No research idea at all → suggest running `/aris-0-2-idea-discovery` first
 - No literature survey → will invoke `/aris-1-1-research-lit` inline in Phase 1
 - No publication list → leave PI qualification section with `[TODO: Add publications]` placeholders
-- Has AUTO_REVIEW.md → extract reviewer feedback and use it to strengthen the feasibility narrative
+- Has `03_AUTO_REVIEW.md` (fallback: `AUTO_REVIEW.md`) → extract reviewer feedback and use it to strengthen the feasibility narrative
 
 ### Phase 1: Literature & Landscape Positioning
 
@@ -290,7 +290,7 @@ Timeline: [timeline]
 ```
 
 **What this does:**
-- Gemini acts as a grant review panelist (not a paper reviewer)
+- Gemini review acts as a grant review panelist (not a paper reviewer)
 - Evaluates aims independence, narrative arc, risk identification, timeline realism
 - Identifies the single biggest reviewer concern
 - Provides actionable fixes ranked by severity
@@ -306,7 +306,7 @@ Apply structural feedback before proceeding to drafting.
 - Aim 2: [title] — Risk: MEDIUM
 - Aim 3: [title] — Risk: LOW
 - Timeline: [summary]
-- Reviewer feedback: [key points from Gemini]
+- Reviewer feedback: [key points from GPT-5.4]
 
 Proceed to section drafting? Or adjust the structure?
 ```
@@ -319,7 +319,7 @@ Options for the user:
 - Reply **"back"** → return to Phase 1 to adjust the gap/positioning
 - Reply **"stop"** → save current structure to `grant-proposal/DRAFT_NOTES.md`
 
-**State**: Write `GRANT_STATE.json` with `phase: 2`, aims summary, and the completed reviewer `thread_id` if you ran the reviewer directly.
+**State**: Write `GRANT_STATE.json` with `phase: 2`, aims summary, and Codex threadId.
 
 ### Phase 3: Section Drafting
 
@@ -327,7 +327,7 @@ Draft each section according to the grant type template. Write **complete prose*
 
 **What this does:**
 - Writes all required sections in the agency-specific language and tone
-- Pulls content from IDEA_REPORT.md, FINAL_PROPOSAL.md, and literature notes
+- Pulls content from `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, and literature notes (fallback to legacy names only when canonical files are absent)
 - Uses `/aris-4-3-paper-illustration` for figure generation (if user requests)
 - Leaves `[TODO]` only for PI-specific information, `[AMOUNT]` for budget figures
 - Outputs `grant-proposal/GRANT_PROPOSAL.md`
@@ -404,7 +404,7 @@ Which should I generate? (e.g., "1 and 3", "all", "skip")
 
 #### For Each Section
 
-1. **Pull relevant content** from IDEA_REPORT.md, FINAL_PROPOSAL.md, literature notes
+1. **Pull relevant content** from `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, and literature notes (fallback to legacy names only when canonical files are absent)
 2. **Write complete prose** — no `[TODO]` except for PI-specific information
 3. **Include figure/table placeholders** where appropriate (e.g., `[Figure 1: System architecture]`)
 4. **Cite references properly** — use citation keys, will build bibliography later
@@ -419,20 +419,22 @@ Invoke `/aris-1-6-research-review` on the complete draft for grant-type-specific
 ```
 
 **What this does:**
-- Gemini acts as a grant review panelist
+- Gemini review acts as a grant review panelist
 - Scores each section 1-5 using agency-specific criteria
 - Identifies fatal flaws and recommends funding/revisions/rejection
 - Provides ranked action items for improvement
 - All feedback saved to `grant-proposal/GRANT_REVIEW.md`
 
-> ⚠️ **External review fallback**: If `gemini-review` MCP is unavailable or Gemini credentials are missing, skip external review. Note "External review skipped — gemini-review unavailable." in `GRANT_REVIEW.md`. The proposal is still usable without external review.
+> ⚠️ **Codex MCP fallback**: If `mcp__gemini-review__review_start` is not available (no OpenAI API key), skip external review. Note "External review skipped — no Codex MCP available. Consider running `/aris-3-4-auto-review-loop-llm` separately." in GRANT_REVIEW.md. The proposal is still usable without external review.
 
-If `/aris-1-6-research-review` is invoked (preferred), it handles the external review internally. If you run the reviewer directly, use `mcp__gemini-review__review_start` for Round 1 and `mcp__gemini-review__review_reply_start` for follow-up rounds.
+If `/aris-1-6-research-review` is invoked (preferred), it handles the Codex call internally. If calling Codex directly (e.g., to maintain thread context from Phase 2):
 
 #### Round 1 (full draft review):
 
 ```
-mcp__gemini-review__review_start:
+mcp__gemini-review__review_start-reply:
+  threadId: [from Phase 2]
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     Review this complete [GRANT_TYPE] [GRANT_SUBTYPE] proposal draft.
 
@@ -454,15 +456,14 @@ mcp__gemini-review__review_start:
     [PASTE FULL PROPOSAL TEXT]
 ```
 
-After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the review output, and save the completed `threadId` in `GRANT_STATE.json` if you want to continue the same dialogue in Round 2.
-
 #### Round 2+ (after revisions):
 
 If MAX_REVIEW_ROUNDS > 1 and revisions were applied:
 
 ```
-mcp__gemini-review__review_reply_start:
-  threadId: [saved completed threadId from Round 1]
+mcp__gemini-review__review_start-reply:
+  threadId: [saved from Round 1]
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     [Round N review of revised [GRANT_TYPE] [GRANT_SUBTYPE] proposal]
 
@@ -477,8 +478,6 @@ mcp__gemini-review__review_reply_start:
     [PASTE REVISED PROPOSAL TEXT]
 ```
 
-After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the updated review output.
-
 ### Phase 5: Revision & Output
 
 #### 5.1 Apply Reviewer Feedback
@@ -488,7 +487,7 @@ Parse reviewer feedback into severity levels:
 - **MAJOR** — significant weaknesses. Fix before submission.
 - **MINOR** — suggestions for improvement. Fix if time allows.
 
-Implement CRITICAL and MAJOR fixes. If MAX_REVIEW_ROUNDS > 1, re-submit for another round via `send_input`.
+Implement CRITICAL and MAJOR fixes. If MAX_REVIEW_ROUNDS > 1, re-submit for another round via `mcp__gemini-review__review_start-reply`.
 
 #### 5.2 Generate Output
 
@@ -542,7 +541,7 @@ Before declaring done:
 - Language: [language]
 - Aims: [N] aims covering [summary]
 - Timeline: [N] years
-- Review score: [summary from Gemini]
+- Review score: [summary from GPT-5.4]
 - Output: grant-proposal/GRANT_PROPOSAL.md
 
 Files saved to grant-proposal/. Please review and customize:
@@ -569,7 +568,7 @@ What would you like to do next?
 - **Preliminary data de-risks.** Include any pilot results, existing datasets, or prior publications that demonstrate feasibility.
 - **Reviewer-facing structure.** Bold key sentences. Use numbered lists for clarity. Make the reviewer's job easy.
 - **Cultural norms matter.** KAKENHI expects 社会的意義; NSF expects Broader Impacts; NSFC expects 国际前沿 positioning. Missing these is a red flag for reviewers.
-- **Feishu notifications are optional.** If `~/.codex/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final output. If absent, skip silently.
+- **Feishu notifications are optional.** If `~/.claude/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final output. If absent, skip silently.
 
 ## Parameter Pass-Through
 
@@ -588,7 +587,7 @@ Parameters can be passed inline with `—` separator. They flow to sub-skills wh
 | `max review rounds` | 2 | External review cycles | — |
 | `sources` | all | Literature sources | → `/aris-1-1-research-lit` |
 | `arxiv download` | false | Download arXiv PDFs | → `/aris-1-1-research-lit` |
-| `reviewer model` | gemini-review | Gemini reviewer bridge | → reviewer thread |
+| `reviewer model` | gpt-5.4 | Codex review model | → Codex MCP |
 | `auto proceed` | false | Skip checkpoints | — |
 
 ## Composing with Other Skills

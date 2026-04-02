@@ -151,7 +151,7 @@
 
   <!-- ====== Row 6: Result ====== -->
   <rect x="100" y="245" width="225" height="22" fill="#e8fde8" stroke="#4aaa4a" stroke-width="1.2" rx="6"/>
-  <text x="113" y="260" font-size="10px" fill="#2a7a2a">🏆 IDEA_REPORT.md ready!</text>
+  <text x="113" y="260" font-size="10px" fill="#2a7a2a">🏆 01_IDEA_REPORT.md ready!</text>
 
   <!-- ====== Bottom tagline ====== -->
   <text x="212" y="282" text-anchor="middle" font-size="10px" fill="#bbb" font-style="italic">Workflow 1: Idea Discovery</text>

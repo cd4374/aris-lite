@@ -1,6 +1,6 @@
 ---
-name: aris-0-2-idea-discovery
-description: "Workflow 1: Full idea discovery pipeline. Orchestrates research-lit \u2192 idea-creator \u2192 novelty-check \u2192 research-review to go from a broad research direction to validated, pilot-tested ideas. Use when user says \\\"\u627eidea\u5168\u6d41\u7a0b\\\", \\\"idea discovery pipeline\\\", \\\"\u4ece\u96f6\u5f00\u59cb\u627e\u65b9\u5411\\\", or wants the complete idea exploration workflow."
+name: "aris-0-2-idea-discovery"
+description: "Workflow 1: Full idea discovery pipeline. Orchestrates research-lit → idea-creator → novelty-check → research-review to go from a broad research direction to validated, pilot-tested ideas. Use when user says \"找idea全流程\", \"idea discovery pipeline\", \"从零开始找方向\", or wants the complete idea exploration workflow."
 ---
 
 > Override for Codex users who want **Gemini**, not a second Codex agent, to act as the reviewer. Install this package **after** `skills/skills-codex/*`.
@@ -18,7 +18,7 @@ This skill chains sub-skills into a single automated pipeline:
   (survey)      (brainstorm)    (verify novel)    (critical feedback)  (refine method + plan experiments)
 ```
 
-Each phase builds on the previous one's output. The final deliverables are a validated `IDEA_REPORT.md` with ranked ideas, plus a refined proposal (`refine-logs/FINAL_PROPOSAL.md`) and experiment plan (`refine-logs/EXPERIMENT_PLAN.md`) for the top idea.
+Each phase builds on the previous one's output. The final deliverables are a validated `01_IDEA_REPORT.md` with ranked ideas, plus a refined proposal (`01_FINAL_PROPOSAL.md`) and experiment plan (`02_EXPERIMENT_PLAN.md`) for the top idea. Prefer these canonical prefixed artifacts throughout the workflow; fall back to legacy names only when the canonical file is absent.
 
 ## Constants
 
@@ -27,12 +27,86 @@ Each phase builds on the previous one's output. The final deliverables are a val
 - **MAX_PILOT_IDEAS = 3** — Run pilots for at most 3 top ideas in parallel. Additional ideas are validated on paper only.
 - **MAX_TOTAL_GPU_HOURS = 8** — Total GPU budget across all pilots. If exceeded, skip remaining pilots and note in report.
 - **AUTO_PROCEED = true** — If user doesn't respond at a checkpoint, automatically proceed with the best option after presenting results. Set to `false` to always wait for explicit user confirmation.
-- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge. Passed to the reviewer-aware sub-skills installed by this overlay.
+- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
 - **ARXIV_DOWNLOAD = false** — When `true`, `/aris-1-1-research-lit` downloads the top relevant arXiv PDFs during Phase 1. When `false` (default), only fetches metadata. Passed through to `/aris-1-1-research-lit`.
+- **COMPACT = false** — When `true`, generate compact summary files for short-context models and session recovery. Writes `IDEA_CANDIDATES.md` (top 3-5 ideas only) at the end of this workflow. Downstream skills read this instead of the full `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`).
+- **REF_PAPER = false** — Reference paper to base ideas on. Accepts: local PDF path, arXiv URL, or any paper URL. When set, the paper is summarized first (`REF_PAPER_SUMMARY.md`), then idea generation uses it as context. Combine with `base repo` for "improve this paper with this codebase" workflows.
 
-> 💡 These are defaults. Override by telling the skill, e.g., `/aris-0-2-idea-discovery "topic" — pilot budget: 4h per idea, 20h total` or `/aris-0-2-idea-discovery "topic" — arxiv download: true`.
+> 💡 These are defaults. Override by telling the skill, e.g., `/aris-0-2-idea-discovery "topic" — ref paper: https://arxiv.org/abs/2406.04329` or `/aris-0-2-idea-discovery "topic" — compact: true`.
 
 ## Pipeline
+
+### Phase 0: Load Research Brief (if available)
+
+Before starting any other phase, check for a detailed research brief in the project:
+
+1. Look for `RESEARCH_BRIEF.md` in the project root (or path passed as `$ARGUMENTS`)
+2. If found, read it and extract:
+   - Problem statement and context
+   - Constraints (compute, data, timeline, venue)
+   - What the user already tried / what didn't work
+   - Domain knowledge and non-goals
+   - Existing results (if any)
+3. Use this as the primary context for all subsequent phases — it replaces the one-line prompt
+4. If both `RESEARCH_BRIEF.md` and a one-line `$ARGUMENTS` exist, merge them (brief takes priority for details, argument sets the direction)
+
+If no brief exists, proceed normally with `$ARGUMENTS` as the research direction.
+
+> 💡 Create a brief from the template: `cp templates/RESEARCH_BRIEF_TEMPLATE.md RESEARCH_BRIEF.md`
+
+### Phase 0.5: Reference Paper Summary (when REF_PAPER is set)
+
+**Skip entirely if `REF_PAPER` is `false`.**
+
+Summarize the reference paper before searching the literature:
+
+1. **If arXiv URL** (e.g., `https://arxiv.org/abs/2406.04329`):
+   - Invoke `/aris-1-2-arxiv "ARXIV_ID" — download` to fetch the PDF
+   - Read the first 5 pages (title, abstract, intro, method overview)
+
+2. **If local PDF path** (e.g., `papers/reference.pdf`):
+   - Read the PDF directly (first 5 pages)
+
+3. **If other URL**:
+   - Fetch and extract content via WebFetch
+
+4. **Generate `REF_PAPER_SUMMARY.md`**:
+
+```markdown
+# Reference Paper Summary
+
+**Title**: [paper title]
+**Authors**: [authors]
+**Venue**: [venue, year]
+
+## What They Did
+[2-3 sentences: core method and contribution]
+
+## Key Results
+[Main quantitative findings]
+
+## Limitations & Open Questions
+[What the paper didn't solve, acknowledged weaknesses, future work suggestions]
+
+## Potential Improvement Directions
+[Based on the limitations, what could be improved or extended?]
+
+## Codebase
+[If `base repo` is also set: link to the repo and note which parts correspond to the paper]
+```
+
+**🚦 Checkpoint:** Present the summary to the user:
+
+```
+📄 Reference paper summarized:
+- Title: [title]
+- Key limitation: [main gap]
+- Improvement directions: [2-3 bullets]
+
+Proceeding to literature survey with this as context.
+```
+
+Phase 1 and Phase 2 will use `REF_PAPER_SUMMARY.md` as additional context — `/aris-1-1-research-lit` searches for related and competing work, `/aris-1-4-idea-creator` generates ideas that build on or improve the reference paper.
 
 ### Phase 1: Literature Survey
 
@@ -63,21 +137,22 @@ Does this match your understanding? Should I adjust the scope before generating 
 
 ### Phase 2: Idea Generation + Filtering + Pilots
 
-Invoke `/aris-1-4-idea-creator` with the landscape context:
+Invoke `/aris-1-4-idea-creator` with the landscape context (and `REF_PAPER_SUMMARY.md` if available):
 
 ```
 /aris-1-4-idea-creator "$ARGUMENTS"
 ```
 
 **What this does:**
-- Brainstorm 8-12 concrete ideas via the Gemini-backed `/aris-1-4-idea-creator` overlay
+- If `REF_PAPER_SUMMARY.md` exists, include it as context — ideas should build on, improve, or extend the reference paper
+- Brainstorm 8-12 concrete ideas via Gemini review
 - Filter by feasibility, compute cost, quick novelty search
 - Deep validate top ideas (full novelty check + devil's advocate)
 - Run parallel pilot experiments on available GPUs (top 2-3 ideas)
 - Rank by empirical signal
-- Output `IDEA_REPORT.md`
+- Output `01_IDEA_REPORT.md` (canonical; fallback readers may still consume `IDEA_REPORT.md`)
 
-**🚦 Checkpoint:** Present `IDEA_REPORT.md` ranked ideas to the user. Ask:
+**🚦 Checkpoint:** Present `01_IDEA_REPORT.md` ranked ideas to the user. Ask:
 
 ```
 💡 Generated X ideas, filtered to Y, piloted Z. Top results:
@@ -105,11 +180,11 @@ For each top idea (positive pilot signal), run a thorough novelty check:
 
 **What this does:**
 - Multi-source literature search (arXiv, Scholar, Semantic Scholar)
-- Cross-verify with the Gemini-backed `/aris-1-5-novelty-check` overlay
+- Cross-verify with Gemini review
 - Check for concurrent work (last 3-6 months)
 - Identify closest existing work and differentiation points
 
-**Update `IDEA_REPORT.md`** with deep novelty results. Eliminate any idea that turns out to be already published.
+**Update `01_IDEA_REPORT.md`** with deep novelty results. Eliminate any idea that turns out to be already published.
 
 ### Phase 4: External Critical Review
 
@@ -120,11 +195,11 @@ For the surviving top idea(s), get brutal feedback:
 ```
 
 **What this does:**
-- Gemini acts as a senior reviewer (NeurIPS/ICML level) via the local `gemini-review` MCP bridge
+- Gemini review acts as a senior reviewer (NeurIPS/ICML level)
 - Scores the idea, identifies weaknesses, suggests minimum viable improvements
 - Provides concrete feedback on experimental design
 
-**Update `IDEA_REPORT.md`** with reviewer feedback and revised plan.
+**Update `01_IDEA_REPORT.md`** with reviewer feedback and revised plan.
 
 ### Phase 4.5: Method Refinement + Experiment Planning
 
@@ -136,9 +211,9 @@ After review, refine the top idea into a concrete proposal and plan experiments:
 
 **What this does:**
 - Freeze a **Problem Anchor** to prevent scope drift
-- Iteratively refine the method via Gemini review (up to 5 rounds, until score ≥ 9)
+- Iteratively refine the method via GPT-5.4 review (up to 5 rounds, until score ≥ 9)
 - Generate a claim-driven experiment roadmap with ablations, budgets, and run order
-- Output: `refine-logs/FINAL_PROPOSAL.md`, `refine-logs/EXPERIMENT_PLAN.md`, `refine-logs/EXPERIMENT_TRACKER.md`
+- Output: `01_FINAL_PROPOSAL.md`, `02_EXPERIMENT_PLAN.md`, `02_EXPERIMENT_TRACKER.md` (fallback readers may still consume the legacy `refine-logs/*` files if needed)
 
 **🚦 Checkpoint:** Present the refined proposal summary:
 
@@ -159,7 +234,7 @@ Proceed to implementation? Or adjust the proposal?
 
 ### Phase 5: Final Report
 
-Finalize `IDEA_REPORT.md` with all accumulated information:
+Finalize `01_IDEA_REPORT.md` with all accumulated information:
 
 ```markdown
 # Idea Discovery Report
@@ -190,15 +265,38 @@ Finalize `IDEA_REPORT.md` with all accumulated information:
 [ideas killed at each phase, with reasons]
 
 ## Refined Proposal
-- Proposal: `refine-logs/FINAL_PROPOSAL.md`
-- Experiment plan: `refine-logs/EXPERIMENT_PLAN.md`
-- Tracker: `refine-logs/EXPERIMENT_TRACKER.md`
+- Proposal: `01_FINAL_PROPOSAL.md`
+- Experiment plan: `02_EXPERIMENT_PLAN.md`
+- Tracker: `02_EXPERIMENT_TRACKER.md`
 
 ## Next Steps
 - [ ] /aris-2-1-run-experiment to deploy experiments from the plan
 - [ ] /aris-3-1-auto-review-loop to iterate until submission-ready
 - [ ] Or invoke /aris-0-1-research-pipeline for the complete end-to-end flow
 ```
+
+### Phase 5.5: Write Compact Files (when COMPACT = true)
+
+**Skip entirely if `COMPACT` is `false`.**
+
+Write `IDEA_CANDIDATES.md` — a lean summary of the top 3-5 surviving ideas:
+
+```markdown
+# Idea Candidates
+
+| # | Idea | Pilot Signal | Novelty | Reviewer Score | Status |
+|---|------|-------------|---------|---------------|--------|
+| 1 | [title] | +X% | Confirmed | X/10 | RECOMMENDED |
+| 2 | [title] | +Y% | Confirmed | X/10 | BACKUP |
+| 3 | [title] | Negative | — | — | ELIMINATED |
+
+## Active Idea: #1 — [title]
+- Hypothesis: [one sentence]
+- Key evidence: [pilot result]
+- Next step: /aris-0-3-experiment-bridge or /aris-1-7-research-refine
+```
+
+This file is intentionally small (~30 lines) so downstream skills and session recovery can read it without loading the full `01_IDEA_REPORT.md` (~200+ lines; fallback: `IDEA_REPORT.md`).
 
 ## Key Rules
 
@@ -210,7 +308,7 @@ Finalize `IDEA_REPORT.md` with all accumulated information:
 - **Empirical signal > theoretical appeal.** An idea with a positive pilot outranks a "sounds great" idea without evidence.
 - **Document everything.** Dead ends are just as valuable as successes for future reference.
 - **Be honest with the reviewer.** Include negative results and failed pilots in the review prompt.
-- **Feishu notifications are optional.** If `~/.codex/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final report. If absent/off, skip silently.
+- **Feishu notifications are optional.** If `~/.claude/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final report. If absent/off, skip silently.
 
 ## Composing with Workflow 2
 

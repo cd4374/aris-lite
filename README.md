@@ -29,9 +29,9 @@ claude
 /aris-0-2-idea-discovery "你的研究方向"              # 工作流 1：idea 发现
 /aris-0-3-experiment-bridge                         # 工作流 1.5：实现 + 部署 + 初始结果
 /aris-3-1-auto-review-loop "你的论文主题或范围"         # 工作流 2：自动 review 循环
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"       # 工作流 3：论文写作
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"    # 工作流 3：论文写作 + submission gate
 /aris-5-1-rebuttal "paper/ + reviews" — venue: ICML  # 工作流 4：rebuttal
-/aris-0-1-research-pipeline "你的研究方向"            # 全流程：1 → 1.5 → 2 → 3
+/aris-0-1-research-pipeline "你的研究方向"            # 全流程：0 → 1 → 1.5 → 2 → 3 → 6
 ```
 
 模板见 [`templates/`](templates/)：
@@ -44,7 +44,7 @@ claude
 
 ### 全流程（`aris-0-1-research-pipeline`）
 
-适合：希望从研究方向直接串起 idea 发现、实验桥接、自动 review 和论文写作。
+适合：希望从研究方向直接串起环境检查、idea 发现、实验桥接、自动 review、论文写作和最终投稿检查。
 
 入口：
 
@@ -63,10 +63,12 @@ claude
 流程：
 
 ```text
-工作流 1：idea 发现
+工作流 0：环境检查
+→ 工作流 1：idea 发现
 → 工作流 1.5：实验桥接
 → 工作流 2：自动 review 循环
 → 工作流 3：论文写作
+→ 工作流 6：submission gate
 ```
 
 常见用法：
@@ -97,9 +99,9 @@ claude
 ```
 
 主要输出：
-- `IDEA_REPORT.md`
-- `refine-logs/FINAL_PROPOSAL.md`
-- `refine-logs/EXPERIMENT_PLAN.md`
+- `01_IDEA_REPORT.md`
+- `01_FINAL_PROPOSAL.md`
+- `02_EXPERIMENT_PLAN.md`
 
 ### 工作流 1.5：实验桥接
 
@@ -113,8 +115,9 @@ claude
 /aris-0-3-experiment-bridge "my_plan.md"
 ```
 
-默认会读取：
-- `refine-logs/EXPERIMENT_PLAN.md`
+默认会优先读取：
+- `02_EXPERIMENT_PLAN.md`
+- 缺失时回退到 `refine-logs/EXPERIMENT_PLAN.md`
 
 典型流程：
 
@@ -147,12 +150,12 @@ claude
 
 ### 工作流 3：论文写作
 
-适合：已有 `NARRATIVE_REPORT.md`，希望生成投稿论文。
+适合：已有 `04_NARRATIVE_REPORT.md`，希望生成投稿论文并做最终投稿检查。
 
 入口：
 
 ```text
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"
 ```
 
 分步模式：
@@ -163,6 +166,7 @@ claude
 → /aris-4-4-paper-write
 → /aris-4-5-paper-compile
 → /aris-4-6-auto-paper-improvement-loop
+→ /aris-4-8-submission-gate
 ```
 
 输入建议：
@@ -171,6 +175,7 @@ claude
 - 实验设置
 - 定量结果
 - 图表说明
+- 手工图需求（会记录到 `05_FIGURE_MANIFEST.md`）
 
 ### 工作流 4：Rebuttal
 
@@ -210,7 +215,8 @@ claude
 | 参数 | 默认值 | 作用 |
 |------|--------|------|
 | `AUTO_PROCEED` | `true` | idea 选择阶段自动继续 |
-| `human checkpoint` | `false` | 每轮 review 后暂停等待人工确认 |
+| `human checkpoint` | `false` | 在 review 循环中每轮暂停等待人工确认 |
+| `submission gate` | `true` | 论文写作后自动执行 `/aris-4-8-submission-gate` |
 | `sources` | `all` | 文献源：`zotero`、`obsidian`、`local`、`web`、`semantic-scholar`、`all` |
 | `arxiv download` | `false` | 下载最相关的 arXiv PDF |
 | `DBLP_BIBTEX` | `true` | 用 DBLP/CrossRef 获取真实 BibTeX |
@@ -221,6 +227,8 @@ claude
 | `base repo` | `false` | 基础代码仓库 URL |
 | `compact` | `false` | 生成精简摘要文件 |
 | `ref paper` | `false` | 参考论文 PDF 路径或 arXiv URL |
+
+新流程统一优先写带阶段前缀的 canonical 产物，例如 `00_ENVIRONMENT_HEALTHCHECK.md`、`01_IDEA_REPORT.md`、`02_EXPERIMENT_RESULTS.md`、`03_AUTO_REVIEW.md`、`04_NARRATIVE_REPORT.md`、`05_PAPER_PLAN.md`、`06_SUBMISSION_GATE.md`；旧文件名仍可作为回退读取。
 
 ## 安装
 

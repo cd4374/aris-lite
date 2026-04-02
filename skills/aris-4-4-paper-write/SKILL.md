@@ -19,13 +19,13 @@ Draft a LaTeX paper based on: **$ARGUMENTS**
 
 ## Inputs
 
-1. **PAPER_PLAN.md** — outline with claims-evidence matrix, section plan, figure plan (from `/aris-4-1-paper-plan`)
-2. **NARRATIVE_REPORT.md** — the research narrative (primary source of content)
+1. **`05_PAPER_PLAN.md`** (preferred) or `PAPER_PLAN.md` — outline with claims-evidence matrix, section plan, figure plan (from `/aris-4-1-paper-plan`)
+2. **`04_NARRATIVE_REPORT.md`** (preferred) or `NARRATIVE_REPORT.md` — the research narrative (primary source of content)
 3. **Generated figures** — PDF/PNG files in `figures/` (from `/aris-4-2-paper-figure`)
 4. **LaTeX includes** — `figures/latex_includes.tex` (from `/aris-4-2-paper-figure`)
 5. **Bibliography** — existing `.bib` file, or will create one
 
-If no PAPER_PLAN.md exists, ask the user to run `/aris-4-1-paper-plan` first or provide a brief outline.
+If no canonical/legacy paper plan exists, ask the user to run `/aris-4-1-paper-plan` first or provide a brief outline.
 
 ## Orchestra-Guided Writing Overlay
 
@@ -141,12 +141,12 @@ Create shared math macros based on the paper's notation:
 Process sections in order. For each section:
 
 1. **Read the plan** — what claims, evidence, citations belong here
-2. **Read NARRATIVE_REPORT.md** — extract relevant content, findings, and quantitative results
+2. **Read `04_NARRATIVE_REPORT.md` first (fallback: `NARRATIVE_REPORT.md`)** — extract relevant content, findings, and quantitative results
 3. **Draft content** — write complete LaTeX (not placeholders)
 4. **Insert figures/tables** — use snippets from `figures/latex_includes.tex`
 5. **Add citations** — for ML conferences (ICLR/NeurIPS/ICML/CVPR/ACL/AAAI): use `\citep{}` / `\citet{}` (natbib). **For IEEE venues**: use `\cite{}` (numeric style via `cite` package). Never mix natbib and cite commands.
 
-Before drafting the front matter, re-read the one-sentence contribution from `PAPER_PLAN.md`. The Abstract and Introduction should make that takeaway obvious before the reader reaches the full method.
+Before drafting the front matter, re-read the one-sentence contribution from `05_PAPER_PLAN.md` first (fallback: `PAPER_PLAN.md`). The Abstract and Introduction should make that takeaway obvious before the reader reaches the full method.
 
 #### Section-Specific Guidelines
 

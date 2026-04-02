@@ -14,14 +14,14 @@ SRC_ROOT = REPO_ROOT / "skills" / "skills-codex"
 DEST_ROOT = REPO_ROOT / "skills" / "skills-codex-claude-review"
 
 TARGET_SKILLS = [
-    "research-review",
-    "novelty-check",
-    "research-refine",
-    "auto-review-loop",
-    "paper-plan",
-    "paper-figure",
-    "paper-write",
-    "auto-paper-improvement-loop",
+    "aris-1-6-research-review",
+    "aris-1-5-novelty-check",
+    "aris-1-7-research-refine",
+    "aris-3-1-auto-review-loop",
+    "aris-4-1-paper-plan",
+    "aris-4-2-paper-figure",
+    "aris-4-4-paper-write",
+    "aris-4-6-auto-paper-improvement-loop",
 ]
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?", re.DOTALL)

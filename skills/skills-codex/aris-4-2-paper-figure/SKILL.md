@@ -1,6 +1,8 @@
 ---
 name: aris-4-2-paper-figure
-description: "Generate publication-quality figures and tables from experiment results. Use when user says \\\"\u753b\u56fe\\\", \\\"\u4f5c\u56fe\\\", \\\"generate figures\\\", \\\"paper figures\\\", or needs plots for a paper."
+description: "Generate publication-quality figures and tables from experiment results. Use when user says \"画图\", \"作图\", \"generate figures\", \"paper figures\", or needs plots for a paper."
+argument-hint: [figure-plan-or-data-path]
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Paper Figure: Publication-Quality Plots from Experiment Data
@@ -28,21 +30,21 @@ Generate all figures and tables for a paper based on: **$ARGUMENTS**
 - **COLOR_PALETTE = `tab10`** — Default matplotlib color cycle. Options: `tab10`, `Set2`, `colorblind` (deuteranopia-safe)
 - **FONT_SIZE = 10** — Base font size (matches typical conference body text)
 - **FIG_DIR = `figures/`** — Output directory for generated figures
-- **REVIEWER_MODEL = `gpt-5.4`** — Model used via a secondary Codex agent for figure quality review.
+- **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for figure quality review.
 
 ## Inputs
 
-1. **PAPER_PLAN.md** — figure plan table (from `/aris-4-1-paper-plan`)
+1. **`05_PAPER_PLAN.md`** (preferred) or `PAPER_PLAN.md` — figure plan table (from `/aris-4-1-paper-plan`)
 2. **Experiment data** — JSON files, CSV files, or screen logs in `figures/` or project root
 3. **Existing figures** — any manually created figures to preserve
 
-If no PAPER_PLAN.md exists, scan for data files and ask the user which figures to generate.
+If no canonical/legacy paper plan exists, scan for data files and ask the user which figures to generate.
 
 ## Workflow
 
 ### Step 1: Read Figure Plan
 
-Parse the Figure Plan table from PAPER_PLAN.md:
+Parse the Figure Plan table from `05_PAPER_PLAN.md` first (fallback: `PAPER_PLAN.md`):
 
 ```markdown
 | ID | Type | Description | Data Source | Priority |
@@ -55,6 +57,7 @@ Identify:
 - Which figures can be auto-generated from data
 - Which need manual creation (architecture diagrams, etc.)
 - Which are comparison tables (generate as LaTeX)
+- Which manual figures need placeholder/manifest tracking in `05_FIGURE_MANIFEST.md`
 
 ### Step 2: Set Up Plotting Environment
 
@@ -167,6 +170,7 @@ Method & Rate & Depends on $D$? & Multi-modal? \\
 - This skill can generate a rough TikZ skeleton as a starting point, but **do not expect publication-quality results**
 - If the figure already exists in `figures/`, preserve it and generate only the LaTeX `\includegraphics` snippet
 - Flag as `[MANUAL]` in the figure plan and `latex_includes.tex`
+- Record each unresolved manual figure in `05_FIGURE_MANIFEST.md` with status such as `manual-required`, `manual-placeholder`, `manual-existing`, or `missing`
 
 ### Step 5: Run All Scripts
 
@@ -193,17 +197,17 @@ For each figure, output the LaTeX code to include it:
 \end{figure}
 ```
 
-Save all snippets to `figures/latex_includes.tex` for easy copy-paste into the paper.
+Save all snippets to `figures/latex_includes.tex` for easy copy-paste into the paper. If a manual figure is unresolved, emit a clearly marked placeholder include/snippet and capture the blocker in `05_FIGURE_MANIFEST.md`.
 
 ### Step 7: Figure Quality Review with REVIEWER_MODEL
 
 Send figure descriptions and captions to GPT-5.4 for review:
 
 ```
-spawn_agent:
+mcp__codex__codex:
   model: gpt-5.4
-  reasoning_effort: xhigh
-  message: |
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     Review these figure/table plans for a [VENUE] submission.
 
     For each figure:
@@ -258,6 +262,7 @@ figures/
 - **One script per figure** — easy to re-run individual figures when data changes
 - **No titles inside figures** — captions are in LaTeX only
 - **Comparison tables count as figures** — generate them as standalone .tex files
+- **Manual figures must be tracked explicitly** — unresolved high-priority manual figures go into `05_FIGURE_MANIFEST.md`; do not just warn and move on without recording status
 
 ## Figure Type Reference
 
@@ -276,4 +281,3 @@ figures/
 ## Acknowledgements
 
 Design pattern (type × style matrix) inspired by [baoyu-skills](https://github.com/jimliu/baoyu-skills). Publication style defaults and figure rules from [pedrohcgs/claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow). Visualization decision tree from [Imbad0202/academic-research-skills](https://github.com/Imbad0202/academic-research-skills).
-

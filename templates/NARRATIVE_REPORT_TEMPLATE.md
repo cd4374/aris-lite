@@ -1,6 +1,11 @@
-# Narrative Report: [Your Paper Title]
+# [04] Narrative Report: [Your Paper Title]
 
-> **Template for Workflow 3 (`/aris-4-7-paper-writing`).** Fill in all sections, then run `/aris-4-7-paper-writing "NARRATIVE_REPORT.md"`.
+> Artifact: 04_NARRATIVE_REPORT.md
+> Stage: 04 Narrative Handoff
+> Used by: /aris-4-7-paper-writing
+> Generated: [YYYY-MM-DD]
+
+> **Template for Workflow 3 (`/aris-4-7-paper-writing`).** Fill in all sections, then run `/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"`.
 
 ## Core Story
 [2-3 paragraphs: problem, approach, key finding, contribution]

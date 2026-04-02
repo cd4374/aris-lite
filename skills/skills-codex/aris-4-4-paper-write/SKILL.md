@@ -1,6 +1,8 @@
 ---
 name: aris-4-4-paper-write
-description: "Draft LaTeX paper section by section from an outline. Use when user says \\\"\u5199\u8bba\u6587\\\", \\\"write paper\\\", \\\"draft LaTeX\\\", \\\"\u5f00\u59cb\u5199\\\", or wants to generate LaTeX content from a paper plan."
+description: "Draft LaTeX paper section by section from an outline. Use when user says \"写论文\", \"write paper\", \"draft LaTeX\", \"开始写\", or wants to generate LaTeX content from a paper plan."
+argument-hint: [venue-or-section]
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, WebSearch, WebFetch, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Paper Write: Section-by-Section LaTeX Generation
@@ -9,7 +11,7 @@ Draft a LaTeX paper based on: **$ARGUMENTS**
 
 ## Constants
 
-- **REVIEWER_MODEL = `gpt-5.4`** — Model used via a secondary Codex agent for section review. Must be an OpenAI model.
+- **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for section review. Must be an OpenAI model.
 - **TARGET_VENUE = `ICLR`** — Default venue. Supported: `ICLR`, `NeurIPS`, `ICML`, `CVPR` (also ICCV/ECCV), `ACL` (also EMNLP/NAACL), `AAAI`, `ACM` (ACM MM, SIGIR, KDD, CHI, etc.), `IEEE_JOURNAL` (IEEE Transactions / Letters, e.g., T-PAMI, JSAC, TWC, TCOM, TSP, TIP), `IEEE_CONF` (IEEE conferences, e.g., ICC, GLOBECOM, INFOCOM, ICASSP). Determines style file and formatting.
 - **ANONYMOUS = true** — If true, use anonymous author block. Set `false` for camera-ready. Note: most IEEE venues do NOT use anonymous submission — set `false` for IEEE.
 - **MAX_PAGES = 9** — Main body page limit. For ML conferences: counts from first page to end of Conclusion section, references and appendix NOT counted. **For IEEE venues: references ARE counted toward the page limit.** Typical limits: IEEE journal = no strict limit (but 12-14 pages typical for Transactions, 4-5 for Letters), IEEE conference = 5-8 pages including references.
@@ -17,21 +19,21 @@ Draft a LaTeX paper based on: **$ARGUMENTS**
 
 ## Inputs
 
-1. **PAPER_PLAN.md** — outline with claims-evidence matrix, section plan, figure plan (from `/aris-4-1-paper-plan`)
-2. **NARRATIVE_REPORT.md** — the research narrative (primary source of content)
+1. **`05_PAPER_PLAN.md`** (preferred) or `PAPER_PLAN.md` — outline with claims-evidence matrix, section plan, figure plan (from `/aris-4-1-paper-plan`)
+2. **`04_NARRATIVE_REPORT.md`** (preferred) or `NARRATIVE_REPORT.md` — the research narrative (primary source of content)
 3. **Generated figures** — PDF/PNG files in `figures/` (from `/aris-4-2-paper-figure`)
 4. **LaTeX includes** — `figures/latex_includes.tex` (from `/aris-4-2-paper-figure`)
 5. **Bibliography** — existing `.bib` file, or will create one
 
-If no PAPER_PLAN.md exists, ask the user to run `/aris-4-1-paper-plan` first or provide a brief outline.
+If no canonical/legacy paper plan exists, ask the user to run `/aris-4-1-paper-plan` first or provide a brief outline.
 
 ## Orchestra-Guided Writing Overlay
 
-Keep the existing workflow, file layout, and defaults. Use the shared references below only when they improve writing quality:
+Keep the existing `insleep` workflow, file layout, and defaults. Use the shared references below only when they improve writing quality:
 
-- Read `../shared-references/writing-principles.md` before drafting the Abstract, Introduction, Related Work, or when prose feels generic
-- Read `../shared-references/venue-checklists.md` during the final write-up and submission-readiness pass
-- Read `../shared-references/citation-discipline.md` only when the built-in DBLP/CrossRef workflow is insufficient
+- Read `../shared-references/writing-principles.md` before drafting the Abstract, Introduction, Related Work, or when prose feels generic.
+- Read `../shared-references/venue-checklists.md` during the final write-up and submission-readiness pass.
+- Read `../shared-references/citation-discipline.md` only when the built-in DBLP/CrossRef workflow is insufficient.
 
 These references are support material, not extra workflow phases.
 
@@ -139,19 +141,19 @@ Create shared math macros based on the paper's notation:
 Process sections in order. For each section:
 
 1. **Read the plan** — what claims, evidence, citations belong here
-2. **Read NARRATIVE_REPORT.md** — extract relevant content, findings, and quantitative results
+2. **Read `04_NARRATIVE_REPORT.md` first (fallback: `NARRATIVE_REPORT.md`)** — extract relevant content, findings, and quantitative results
 3. **Draft content** — write complete LaTeX (not placeholders)
 4. **Insert figures/tables** — use snippets from `figures/latex_includes.tex`
 5. **Add citations** — for ML conferences (ICLR/NeurIPS/ICML/CVPR/ACL/AAAI): use `\citep{}` / `\citet{}` (natbib). **For IEEE venues**: use `\cite{}` (numeric style via `cite` package). Never mix natbib and cite commands.
 
-Before drafting the front matter, re-read the one-sentence contribution from `PAPER_PLAN.md`. The Abstract and Introduction should make that takeaway obvious before the reader reaches the full method.
+Before drafting the front matter, re-read the one-sentence contribution from `05_PAPER_PLAN.md` first (fallback: `PAPER_PLAN.md`). The Abstract and Introduction should make that takeaway obvious before the reader reaches the full method.
 
 #### Section-Specific Guidelines
 
 **§0 Abstract:**
 - Use the 5-part flow from `../shared-references/writing-principles.md`: what, why hard, how, evidence, strongest result
 - Must be self-contained (understandable without reading the paper)
-- Structure: problem → approach → key result → implication
+- Start with the paper's specific contribution, not generic field-level background
 - Include one concrete quantitative result
 - 150-250 words (check venue limit)
 - No citations, no undefined acronyms
@@ -160,14 +162,18 @@ Before drafting the front matter, re-read the one-sentence contribution from `PA
 **§1 Introduction:**
 - Open with a compelling hook (1-2 sentences, problem motivation)
 - State the gap clearly ("However, ...")
-- List contributions as a numbered or bulleted list
+- Give a brief approach overview before the reader gets lost in details
+- List 2-4 specific, falsifiable contributions as a numbered or bulleted list
+- Preview the strongest result early instead of saving it for the experiments section
 - End with a brief roadmap ("The rest of this paper is organized as...")
 - Include the main result figure if space allows
-- Target: 1.5 pages
+- Target: 1-1.5 pages
+- Methods should begin by page 2-3 at the latest
 
 **§2 Related Work:**
 - **MINIMUM 1 full page** (3-4 substantive paragraphs). Short related work sections are a common reviewer complaint.
 - Organize by category using `\paragraph{Category Name.}`
+- Organize methodologically, by assumption class, or by research question; do not write paper-by-paper mini-summaries
 - Each category: 1 paragraph summarizing the line of work + 1-2 sentences positioning this paper
 - Do NOT just list papers — synthesize and compare
 - End each paragraph with how this paper relates/differs
@@ -185,6 +191,7 @@ Before drafting the front matter, re-read the one-sentence contribution from `PA
 - Main results table/figure first
 - Then ablations and analysis
 - Every claim from the introduction must have supporting evidence here
+- For each major experiment, make explicit what claim it supports and what the reader should notice
 - Target: 2.5-3 pages
 
 **§5 Conclusion:**
@@ -204,7 +211,7 @@ Before drafting the front matter, re-read the one-sentence contribution from `PA
 
 **CRITICAL: Only include entries that are actually cited in the paper.**
 
-1. Scan all `\citep{}` and `\citet{}` references in the drafted sections
+1. Scan all citation references in the drafted sections (`\citep{}`/`\citet{}` for ML conferences, `\cite{}` for IEEE venues)
 2. Build a citation key list
 3. For each citation key:
    - Check existing `.bib` files in the project/narrative docs
@@ -258,19 +265,20 @@ This prevents bib bloat (e.g., 948 lines → 215 lines in testing).
 4. Double-check year and venue for every entry
 5. Remove duplicate entries (same paper with different keys)
 
-### Step 5: De-AI Polish (from kgraph57/aris-4-4-paper-writer-skill)
+### Step 5: De-AI Polish and Clarity Pass
 
 After drafting all sections, scan for common AI writing patterns and fix them:
 
 First apply the sentence-level clarity rules from `../shared-references/writing-principles.md`:
 
-- keep subject and verb close together
-- put familiar context first and new information later
-- place the most important information near the end of the sentence
-- let each paragraph do one job
-- use verbs for actions instead of nominalized nouns
+- keep subject and verb close together,
+- put familiar context first and new information later,
+- place the most important information near the end of the sentence,
+- let each paragraph do one job,
+- use verbs for actions instead of nominalized nouns.
 
-**Content patterns to fix:**
+Then fix the common content patterns below:
+
 - Significance inflation ("groundbreaking", "revolutionary" → use measured language)
 - Formulaic transitions ("In this section, we..." → remove or vary)
 - Generic conclusions ("This work opens exciting new avenues" → be specific)
@@ -280,16 +288,17 @@ First apply the sentence-level clarity rules from `../shared-references/writing-
 - Remove filler: "It is worth noting that", "Importantly,", "Notably,"
 - Avoid rule-of-three lists ("X, Y, and Z" appearing repeatedly)
 - Don't start consecutive sentences with "This" or "We"
+- Replace vague nouns with concrete ones when ambiguity is possible ("this result", "this ablation", "this theorem")
 
 ### Step 6: Cross-Review with REVIEWER_MODEL
 
 Send the complete draft to GPT-5.4 xhigh:
 
 ```
-spawn_agent:
+mcp__codex__codex:
   model: gpt-5.4
-  reasoning_effort: xhigh
-  message: |
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     Review this [VENUE] paper draft (main body, excluding appendix).
 
     Focus on:
@@ -300,6 +309,7 @@ spawn_agent:
     5. Is related work sufficiently comprehensive (≥1 page)?
     6. For theory papers: are proof sketches adequate?
     7. Are figures/tables clearly described and properly referenced?
+    8. Would a skim reader understand the contribution from the title, abstract, introduction, and Figure 1?
 
     For each issue, specify: severity (CRITICAL/MAJOR/MINOR), location, and fix.
 
@@ -341,7 +351,6 @@ Before declaring done:
 ## Key Rules
 
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
-
 - **Do NOT generate author names, emails, or affiliations** — use anonymous block or placeholder
 - **Write complete sections, not outlines** — the output should be compilable LaTeX
 - **One file per section** — modular structure for easy editing
@@ -361,19 +370,8 @@ Before declaring done:
 - `../shared-references/venue-checklists.md` — ICLR/NeurIPS/ICML/IEEE submission requirements to check before declaring done
 - `../shared-references/citation-discipline.md` — stricter fallback for ambiguous citations
 
-Principles from [Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills):
-
-1. **One message per paragraph** — each paragraph makes exactly one point
-2. **Topic sentence first** — the first sentence states the paragraph's message
-3. **Explicit transitions** — connect paragraphs with logical connectors
-4. **Reverse outline test** — extract topic sentences; they should form a coherent narrative
-
-De-AI patterns from [kgraph57/aris-4-4-paper-writer-skill](https://github.com/kgraph57/aris-4-4-paper-writer-skill):
-
-5. **No AI watch words** — delve, pivotal, landscape, tapestry, underscore
-6. **No significance inflation** — groundbreaking, revolutionary, paradigm shift
-7. **No formulaic structures** — vary sentence openings and transitions
+Keep using the reverse-outline test and anti-inflation polish from the main workflow above; the shared references are there to improve quality without adding a new phase.
 
 ## Acknowledgements
 
-Writing methodology adapted from [Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills) (CCF award-winning methodology). Citation verification from [claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar) and [Imbad0202/academic-research-skills](https://github.com/Imbad0202/academic-research-skills). De-AI polish from [kgraph57/aris-4-4-paper-writer-skill](https://github.com/kgraph57/aris-4-4-paper-writer-skill). Backup mechanism from [baoyu-skills](https://github.com/jimliu/baoyu-skills).
+Writing methodology adapted from [Research-Paper-Writing-Skills](https://github.com/Master-cai/Research-Paper-Writing-Skills) (CCF award-winning methodology). Citation verification from [claude-scholar](https://github.com/Galaxy-Dawn/claude-scholar) and [Imbad0202/academic-research-skills](https://github.com/Imbad0202/academic-research-skills). This hybrid pack's writing-guidance overlay is adapted from Orchestra Research's paper-writing materials.

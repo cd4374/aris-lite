@@ -187,7 +187,7 @@ Use the following sub-skills in order:
 5. Use research-refine-pipeline skill — Method refinement + Experiment planning
 ```
 
-> **Tip:** If context is too long, split each stage into separate conversations and pass results via files (e.g., `IDEA_REPORT.md`, `refine-logs/FINAL_PROPOSAL.md`).
+> **Tip:** If context is too long, split each stage into separate conversations and pass results via files (e.g., `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`).
 
 ### Workflow 1.5: Experiment Bridge
 
@@ -199,7 +199,7 @@ Use the following sub-skills in order:
 **Trae equivalent:**
 ```
 Use experiment-bridge skill.
-Read refine-logs/EXPERIMENT_PLAN.md and implement experiments.
+Read 02_EXPERIMENT_PLAN.md (fallback: `refine-logs/EXPERIMENT_PLAN.md`) and implement experiments.
 Use run-experiment skill to deploy to GPU.
 ```
 
@@ -224,13 +224,13 @@ Use MCP tool mcp__codex__codex for external review.
 
 **Claude Code:**
 ```
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"
 ```
 
 **Trae equivalent:**
 ```
 Use paper-writing skill.
-Input: NARRATIVE_REPORT.md in project root.
+Input: 04_NARRATIVE_REPORT.md in project root (fallback: `NARRATIVE_REPORT.md`).
 
 Use the following sub-skills in order:
 1. Use paper-plan skill — Outline + claims-evidence matrix
@@ -244,10 +244,10 @@ Use the following sub-skills in order:
 
 | Stage | Execution | Output Files |
 |--------|-----------|--------------|
-| 1 | Idea Discovery: Use `aris-0-2-idea-discovery` skill + research direction | `IDEA_REPORT.md`, `refine-logs/FINAL_PROPOSAL.md`, `refine-logs/EXPERIMENT_PLAN.md` |
-| 2 | Experiment Bridge: Use `aris-0-3-experiment-bridge` skill | Experiment scripts and results |
-| 3 | Auto Review: Use `aris-3-1-auto-review-loop` skill | `AUTO_REVIEW.md` |
-| 4 | Paper Writing: Use `aris-4-7-paper-writing` skill + `NARRATIVE_REPORT.md` | `paper/` directory |
+| 1 | Idea Discovery: Use `aris-0-2-idea-discovery` skill + research direction | `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, `02_EXPERIMENT_PLAN.md` |
+| 2 | Experiment Bridge: Use `aris-0-3-experiment-bridge` skill | `02_EXPERIMENT_RESULTS.md`, updated `02_EXPERIMENT_TRACKER.md` |
+| 3 | Auto Review: Use `aris-3-1-auto-review-loop` skill | `03_AUTO_REVIEW.md`, `04_NARRATIVE_REPORT.md` |
+| 4 | Paper Writing: Use `aris-4-7-paper-writing` skill + `04_NARRATIVE_REPORT.md` | `paper/`, `06_SUBMISSION_GATE.md` |
 
 Each stage reads output files from the previous stage, so context can be passed across different conversations.
 
@@ -264,17 +264,17 @@ Each stage reads output files from the previous stage, so context can be passed 
 | File | Purpose | Typical workflow |
 |---|---|---|
 | `REVIEW_STATE.json` | Tracks auto-review progress | auto-review-loop |
-| `AUTO_REVIEW.md` | Cumulative review log | auto-review-loop |
-| `IDEA_REPORT.md` | Ranked ideas and initial findings | idea-discovery |
-| `PAPER_PLAN.md` | Outline + claim-evidence matrix | paper-plan |
-| `PAPER_IMPROVEMENT_LOG.md` | Paper improvement rounds log | auto-paper-improvement-loop |
+| `03_AUTO_REVIEW.md` | Cumulative review log | auto-review-loop |
+| `01_IDEA_REPORT.md` | Ranked ideas and initial findings | idea-discovery |
+| `05_PAPER_PLAN.md` | Outline + claim-evidence matrix | paper-plan |
+| `paper/PAPER_IMPROVEMENT_LOG.md` | Paper improvement rounds log | auto-paper-improvement-loop |
 
 Recovery example:
 
 ```text
 @skills/aris-3-1-auto-review-loop/SKILL.md
 @REVIEW_STATE.json
-@AUTO_REVIEW.md
+@03_AUTO_REVIEW.md
 Resume the auto review loop from saved state.
 ```
 
@@ -313,7 +313,7 @@ Use research-review skill to review my research: [description or file reference]
 Use auto-review-loop skill. Topic: "your paper topic".
 
 # Paper writing
-Use paper-writing skill based on NARRATIVE_REPORT.md.
+Use paper-writing skill based on 04_NARRATIVE_REPORT.md.
 
 # Deploy experiment
 Use run-experiment skill. Deploy: python train.py --lr 1e-4 --epochs 100

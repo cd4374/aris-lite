@@ -88,7 +88,7 @@ refine-logs/
 ├── round-2-refinement.md
 ├── ...
 ├── REVIEW_SUMMARY.md
-├── FINAL_PROPOSAL.md
+├── 01_FINAL_PROPOSAL.md
 ├── REFINEMENT_REPORT.md
 └── score-history.md
 ```
@@ -579,7 +579,7 @@ This file is the high-level round-by-round review record. It should answer: each
 - Remaining weaknesses:
 ```
 
-#### Step 5.2: Write `refine-logs/FINAL_PROPOSAL.md`
+#### Step 5.2: Write `01_FINAL_PROPOSAL.md`
 
 This file is the clean final version document. It should contain only the final proposal itself, without review chatter, round history, or raw reviewer output.
 
@@ -608,7 +608,7 @@ If the final verdict is not READY, still write the best current final version he
 
 ## Output Files
 - Review summary: `refine-logs/REVIEW_SUMMARY.md`
-- Final proposal: `refine-logs/FINAL_PROPOSAL.md`
+- Final proposal: `01_FINAL_PROPOSAL.md` (fallback readers may still consume `refine-logs/FINAL_PROPOSAL.md`)
 
 ## Score Evolution
 
@@ -624,7 +624,7 @@ If the final verdict is not READY, still write the best current final version he
 | 2     | ...                     | ...              | ...    |
 
 ## Final Proposal Snapshot
-- Canonical clean version lives in `refine-logs/FINAL_PROPOSAL.md`
+- Canonical clean version lives in `01_FINAL_PROPOSAL.md` (fallback: `refine-logs/FINAL_PROPOSAL.md`)
 - Summarize the final thesis in 3-5 bullets here
 
 ## Method Evolution Highlights
@@ -686,7 +686,7 @@ Remaining concerns:
 
 Review summary: refine-logs/REVIEW_SUMMARY.md
 Full report: refine-logs/REFINEMENT_REPORT.md
-Final proposal: refine-logs/FINAL_PROPOSAL.md
+Final proposal: 01_FINAL_PROPOSAL.md
 Suggested next step: /aris-1-8-experiment-plan
 ```
 

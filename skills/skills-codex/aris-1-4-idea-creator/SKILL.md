@@ -1,6 +1,8 @@
 ---
 name: aris-1-4-idea-creator
-description: "Generate and rank research ideas given a broad direction. Use when user says \"\u627eidea\", \"brainstorm ideas\", \"generate research ideas\", \"what can we work on\", or wants to explore a research area for publishable directions."
+description: Generate and rank research ideas given a broad direction. Use when user says "找idea", "brainstorm ideas", "generate research ideas", "what can we work on", or wants to explore a research area for publishable directions.
+argument-hint: [research-direction]
+allowed-tools: Bash(*), Read, Write, Grep, Glob, WebSearch, WebFetch, Agent, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Research Idea Creator
@@ -17,7 +19,7 @@ Given a broad research direction from the user, systematically generate, validat
 - **PILOT_TIMEOUT_HOURS = 3** — Hard timeout: kill pilots exceeding 3 hours. Collect partial results if available.
 - **MAX_PILOT_IDEAS = 3** — Pilot at most 3 ideas in parallel. Additional ideas are validated on paper only.
 - **MAX_TOTAL_GPU_HOURS = 8** — Total GPU budget for all pilots combined.
-- **REVIEWER_MODEL = `gpt-5.4`** — Model used via a secondary Codex agent for brainstorming and review. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`).
+- **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for brainstorming and review. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`).
 
 > 💡 Override via argument, e.g., `/aris-1-4-idea-creator "topic" — pilot budget: 4h per idea, 20h total`.
 
@@ -50,13 +52,13 @@ Map the research area to understand what exists and where the gaps are.
 
 ### Phase 2: Idea Generation (brainstorm with external LLM)
 
-Use a secondary Codex agent for divergent thinking:
+Use the external LLM via Codex MCP for divergent thinking:
 
 ```
-spawn_agent:
+mcp__codex__codex:
   model: REVIEWER_MODEL
-  reasoning_effort: xhigh
-  message: |
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     You are a senior ML researcher brainstorming research ideas.
 
     Research direction: [user's direction]
@@ -84,7 +86,7 @@ spawn_agent:
     Be creative but grounded. A great idea is one where the answer matters regardless of which way it goes.
 ```
 
-Save the agent id for follow-up.
+Save the threadId for follow-up.
 
 ### Phase 3: First-Pass Filtering
 
@@ -110,7 +112,7 @@ For each surviving idea, run a deeper evaluation:
 
 1. **Novelty check**: Use the `/aris-1-5-novelty-check` workflow (multi-source search + GPT-5.4 cross-verification) for each idea
 
-2. **Critical review**: Use GPT-5.4 via `send_input` (same agent):
+2. **Critical review**: Use GPT-5.4 via `mcp__codex__codex-reply` (same thread):
    ```
    Here are our top ideas after filtering:
    [paste surviving ideas with novelty check results]
@@ -154,7 +156,7 @@ Note: Skip this phase if the ideas are purely theoretical or if no GPU is availa
 
 ### Phase 6: Output — Ranked Idea Report
 
-Write a structured report to `IDEA_REPORT.md` in the project root:
+Write a structured report to `01_IDEA_REPORT.md` in the project root (fallback readers may still consume `IDEA_REPORT.md` when the canonical file is absent):
 
 ```markdown
 # Research Idea Report
@@ -231,4 +233,3 @@ implement                     → write code
 /aris-2-1-run-experiment               → deploy to GPU
 /aris-3-1-auto-review-loop             → iterate until submission-ready
 ```
-

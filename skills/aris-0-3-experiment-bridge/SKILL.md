@@ -1,6 +1,6 @@
 ---
 name: aris-0-3-experiment-bridge
-description: "Workflow 1.5: Bridge between idea discovery and auto review. Reads EXPERIMENT_PLAN.md, implements experiment code, deploys to GPU, collects initial results. Use when user says \"实现实验\", \"implement experiments\", \"bridge\", \"从计划到跑实验\", \"deploy the plan\", or has an experiment plan ready to execute."
+description: "Workflow 1.5: Bridge between idea discovery and auto review. Reads 02_EXPERIMENT_PLAN.md (fallback: legacy experiment plan), implements experiment code, deploys to GPU, collects initial results. Use when user says \"实现实验\", \"implement experiments\", \"bridge\", \"从计划到跑实验\", \"deploy the plan\", or has an experiment plan ready to execute."
 argument-hint: [experiment-plan-path-or-topic]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, Skill, mcp__codex__codex, mcp__codex__codex-reply
 ---
@@ -14,10 +14,10 @@ Implement and deploy experiments from plan: **$ARGUMENTS**
 This skill bridges Workflow 1 (idea discovery + method refinement) and Workflow 2 (auto review loop). It takes the experiment plan and turns it into running experiments with initial results.
 
 ```
-Workflow 1 output:                    This skill:                                    Workflow 2 input:
-refine-logs/EXPERIMENT_PLAN.md   →   implement → GPT-5.4 review → deploy → collect → initial results ready
-refine-logs/EXPERIMENT_TRACKER.md     code        (cross-model)    /aris-2-1-run-experiment     for /aris-3-1-auto-review-loop
-refine-logs/FINAL_PROPOSAL.md
+Workflow 1 output:              This skill:                                    Workflow 2 input:
+02_EXPERIMENT_PLAN.md      →   implement → GPT-5.4 review → deploy → collect → initial results ready
+02_EXPERIMENT_TRACKER.md       code        (cross-model)    /aris-2-1-run-experiment     for /aris-3-1-auto-review-loop
+01_FINAL_PROPOSAL.md
 ```
 
 ## Constants
@@ -27,19 +27,19 @@ refine-logs/FINAL_PROPOSAL.md
 - **SANITY_FIRST = true** — Run the sanity-stage experiment first (smallest, fastest) before launching the rest. Catches setup bugs early.
 - **MAX_PARALLEL_RUNS = 4** — Maximum number of experiments to deploy in parallel (limited by available GPUs).
 - **BASE_REPO = false** — GitHub repo URL to use as base codebase. When set, clone the repo first and implement experiments on top of it. When `false` (default), write code from scratch or reuse existing project files.
-- **COMPACT = false** — When `true`, (1) read `IDEA_CANDIDATES.md` instead of full `IDEA_REPORT.md` if available, (2) append experiment results to `EXPERIMENT_LOG.md` after collection.
+- **COMPACT = false** — When `true`, (1) read `IDEA_CANDIDATES.md` instead of full `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`) if available, (2) append experiment results to `EXPERIMENT_LOG.md` after collection.
 
-> Override: `/aris-0-3-experiment-bridge "EXPERIMENT_PLAN.md" — compact: true, base repo: https://github.com/org/project`
+> Override: `/aris-0-3-experiment-bridge "02_EXPERIMENT_PLAN.md" — compact: true, base repo: https://github.com/org/project`
 
 ## Inputs
 
 This skill expects one or more of:
 
-1. **`refine-logs/EXPERIMENT_PLAN.md`** (best) — claim-driven experiment roadmap from `/aris-1-8-experiment-plan`
-2. **`refine-logs/EXPERIMENT_TRACKER.md`** — run-by-run execution table
-3. **`refine-logs/FINAL_PROPOSAL.md`** — method description for implementation context
+1. **`02_EXPERIMENT_PLAN.md`** (preferred) or `refine-logs/EXPERIMENT_PLAN.md` — claim-driven experiment roadmap from `/aris-1-8-experiment-plan`
+2. **`02_EXPERIMENT_TRACKER.md`** (preferred) or `refine-logs/EXPERIMENT_TRACKER.md` — run-by-run execution table
+3. **`01_FINAL_PROPOSAL.md`** (preferred) or `refine-logs/FINAL_PROPOSAL.md` — method description for implementation context
 4. **`IDEA_CANDIDATES.md`** — compact idea summary (preferred when `COMPACT: true`)
-5. **`IDEA_REPORT.md`** — full brainstorm output (fallback)
+5. **`01_IDEA_REPORT.md`** (preferred) or `IDEA_REPORT.md` — full brainstorm output (fallback)
 
 If none exist, ask the user what experiments to implement.
 
@@ -47,7 +47,7 @@ If none exist, ask the user what experiments to implement.
 
 ### Phase 1: Parse the Experiment Plan
 
-Read `EXPERIMENT_PLAN.md` and extract:
+Read `02_EXPERIMENT_PLAN.md` first (fallback: `refine-logs/EXPERIMENT_PLAN.md`) and extract:
 
 1. **Run order and milestones** — which experiments run first (sanity → baseline → main → ablation → polish)
 2. **For each experiment block:**
@@ -58,7 +58,7 @@ Read `EXPERIMENT_PLAN.md` and extract:
    - Success criterion
    - Priority (MUST-RUN vs NICE-TO-HAVE)
 3. **Compute budget** — total estimated GPU-hours
-4. **Method details** from `FINAL_PROPOSAL.md` — what exactly to implement
+4. **Method details** from `01_FINAL_PROPOSAL.md` first (fallback: `refine-logs/FINAL_PROPOSAL.md`) — what exactly to implement
 
 Present a brief summary:
 
@@ -97,10 +97,10 @@ For each milestone (in order), write the experiment scripts:
 3. **Follow the plan's run order** — implement sanity-stage experiments first, then baselines, then main method, then ablations.
 
 4. **Self-review before deploying:**
-   - Are all hyperparameters from EXPERIMENT_PLAN.md reflected in argparse?
+   - Are all hyperparameters from `02_EXPERIMENT_PLAN.md` / legacy experiment plan reflected in argparse?
    - Is the random seed fixed and controllable?
    - Are results saved in a parseable format (JSON/CSV)?
-   - Does the code match FINAL_PROPOSAL.md's method description?
+   - Does the code match `01_FINAL_PROPOSAL.md` / legacy proposal method description?
 
 ### Phase 2.5: Cross-Model Code Review (when CODE_REVIEW = true)
 
@@ -115,10 +115,10 @@ mcp__codex__codex:
     Review the following experiment implementation for correctness.
 
     ## Experiment Plan:
-    [paste key sections from EXPERIMENT_PLAN.md]
+    [paste key sections from 02_EXPERIMENT_PLAN.md / legacy experiment plan]
 
     ## Method Description:
-    [paste from FINAL_PROPOSAL.md]
+    [paste from 01_FINAL_PROPOSAL.md / legacy proposal]
 
     ## Implementation:
     [paste the experiment scripts]
@@ -201,15 +201,15 @@ As experiments complete:
 
 1. **Parse output files** (JSON/CSV/logs) for key metrics
 2. **Training quality check** — if W&B data is available (CLAUDE.md has `wandb: true` and `wandb_project`), invoke `/aris-2-3-training-check` to detect NaN, loss divergence, plateaus, or overfitting. If W&B is not configured, skip silently.
-3. **Update `refine-logs/EXPERIMENT_TRACKER.md`** — fill in Status and Notes columns
-4. **Check success criteria** from EXPERIMENT_PLAN.md — did each experiment meet its bar?
+3. **Update `02_EXPERIMENT_TRACKER.md`** (fallback: `refine-logs/EXPERIMENT_TRACKER.md`) — fill in Status and Notes columns
+4. **Check success criteria** from `02_EXPERIMENT_PLAN.md` (fallback: legacy plan) — did each experiment meet its bar?
 4. **Write initial results summary:**
 
 ```markdown
 # Initial Experiment Results
 
 **Date**: [today]
-**Plan**: refine-logs/EXPERIMENT_PLAN.md
+**Plan**: 02_EXPERIMENT_PLAN.md
 
 ## Results by Milestone
 
@@ -261,10 +261,10 @@ After main experiments (M2) complete with positive results, invoke `/aris-2-4-ab
 
 - Read the main results and method description
 - Generate a claim-driven ablation plan: which components to remove, what to compare, expected outcomes
-- Append ablation blocks to `refine-logs/EXPERIMENT_PLAN.md` and `refine-logs/EXPERIMENT_TRACKER.md`
+- Append ablation blocks to `02_EXPERIMENT_PLAN.md` and `02_EXPERIMENT_TRACKER.md` (fallback: legacy files if canonical files are absent)
 - If main results are negative or inconclusive, skip ablation planning and note in the summary
 
-If `/aris-2-4-ablation-planner` is not available, skip silently — the existing EXPERIMENT_PLAN.md ablation blocks (if any) remain unchanged.
+If `/aris-2-4-ablation-planner` is not available, skip silently — the existing experiment-plan ablation blocks (if any) remain unchanged.
 
 ### Phase 6: Handoff
 
@@ -277,8 +277,8 @@ Present final status:
 - Completed: [X/Y] must-run, [A/B] nice-to-have
 - Main result: [one sentence]
 
-Results: refine-logs/EXPERIMENT_RESULTS.md
-Tracker: refine-logs/EXPERIMENT_TRACKER.md
+Results: 02_EXPERIMENT_RESULTS.md
+Tracker: 02_EXPERIMENT_TRACKER.md
 
 Ready for Workflow 2:
 → /aris-3-1-auto-review-loop "[topic]"
@@ -288,11 +288,11 @@ Ready for Workflow 2:
 
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 - **CRITICAL — Evaluation must use dataset ground truth.** When writing evaluation scripts, ALWAYS compare model predictions against the dataset's actual ground truth labels/targets — NEVER use another model's output as ground truth. Double-check: (1) ground truth comes from the dataset split, not from a baseline/backbone model, (2) evaluation metrics are computed against the same ground truth for all methods, (3) if the task has official eval scripts, use those.
-- **Follow the plan.** Do not invent experiments not in EXPERIMENT_PLAN.md. If you think something is missing, note it but don't add it.
+- **Follow the plan.** Do not invent experiments not in `02_EXPERIMENT_PLAN.md` / the legacy plan. If you think something is missing, note it but don't add it.
 - **Sanity first.** Never deploy a full suite without verifying the sanity stage passes.
 - **Reuse existing code.** Scan the project before writing new scripts. Extend, don't duplicate.
 - **Save everything as JSON/CSV.** The auto-review-loop needs parseable results, not just terminal output.
-- **Update the tracker.** `EXPERIMENT_TRACKER.md` should reflect real status after each run completes.
+- **Update the tracker.** `02_EXPERIMENT_TRACKER.md` (fallback: legacy tracker) should reflect real status after each run completes.
 - **Don't wait forever.** If an experiment exceeds 2x its estimated time, flag it and move on to the next milestone.
 - **Budget awareness.** Track GPU-hours against the plan's budget. Warn if approaching the limit.
 - **Vast.ai lifecycle.** If using vast.ai instances, destroy them after all experiments complete and results are downloaded. Running instances cost money every second — don't leave them idle. Use `/aris-2-5-vast-gpu destroy` or `/aris-2-5-vast-gpu destroy-all` when done.
@@ -303,7 +303,7 @@ Ready for Workflow 2:
 /aris-0-2-idea-discovery "direction"          ← Workflow 1: find + refine + plan
 /aris-0-3-experiment-bridge                   ← you are here (Workflow 1.5: implement + deploy)
 /aris-3-1-auto-review-loop "topic"            ← Workflow 2: review + iterate
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md" ← Workflow 3: write the paper
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md" ← Workflow 3: write the paper
 
 Or use /aris-0-1-research-pipeline for the full end-to-end flow (includes this bridge).
 ```

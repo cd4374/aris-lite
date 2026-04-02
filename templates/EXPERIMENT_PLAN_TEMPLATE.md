@@ -1,6 +1,6 @@
 # Experiment Plan
 
-> **Template for Workflow 1.5 (`/aris-0-3-experiment-bridge`).** Fill in, save as `refine-logs/EXPERIMENT_PLAN.md`, then run `/aris-0-3-experiment-bridge`.
+> **Template for Workflow 1.5 (`/aris-0-3-experiment-bridge`).** Fill in, save as `02_EXPERIMENT_PLAN.md` (fallback: `refine-logs/EXPERIMENT_PLAN.md` for legacy readers), then run `/aris-0-3-experiment-bridge`.
 
 **Problem**: [What problem does your method solve?]
 **Method Thesis**: [One-sentence description of your approach]

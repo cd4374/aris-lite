@@ -1,6 +1,6 @@
 ---
-name: aris-1-4-idea-creator
-description: "Generate and rank research ideas given a broad direction. Use when user says \"\u627eidea\", \"brainstorm ideas\", \"generate research ideas\", \"what can we work on\", or wants to explore a research area for publishable directions."
+name: "aris-1-4-idea-creator"
+description: "Generate and rank research ideas given a broad direction. Use when user says \"找idea\", \"brainstorm ideas\", \"generate research ideas\", \"what can we work on\", or wants to explore a research area for publishable directions."
 ---
 
 > Override for Codex users who want **Gemini**, not a second Codex agent, to act as the reviewer. Install this package **after** `skills/skills-codex/*`.
@@ -19,7 +19,7 @@ Given a broad research direction from the user, systematically generate, validat
 - **PILOT_TIMEOUT_HOURS = 3** — Hard timeout: kill pilots exceeding 3 hours. Collect partial results if available.
 - **MAX_PILOT_IDEAS = 3** — Pilot at most 3 ideas in parallel. Additional ideas are validated on paper only.
 - **MAX_TOTAL_GPU_HOURS = 8** — Total GPU budget for all pilots combined.
-- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge for brainstorming and critique. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
+- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
 
 > 💡 Override via argument, e.g., `/aris-1-4-idea-creator "topic" — pilot budget: 4h per idea, 20h total`.
 
@@ -52,10 +52,12 @@ Map the research area to understand what exists and where the gaps are.
 
 ### Phase 2: Idea Generation (brainstorm with external LLM)
 
-Use the local `gemini-review` MCP bridge for divergent thinking:
+Use the external LLM via Codex MCP for divergent thinking:
 
 ```
 mcp__gemini-review__review_start:
+  model: REVIEWER_MODEL
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     You are a senior ML researcher brainstorming research ideas.
 
@@ -84,7 +86,9 @@ mcp__gemini-review__review_start:
     Be creative but grounded. A great idea is one where the answer matters regardless of which way it goes.
 ```
 
-After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the brainstorm output, and save the completed `threadId` for follow-up critique in Phase 4.
+After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
+
+Save the threadId for follow-up.
 
 ### Phase 3: First-Pass Filtering
 
@@ -108,26 +112,21 @@ Eliminate ideas that fail any of these. Typically 8-12 ideas reduce to 4-6.
 
 For each surviving idea, run a deeper evaluation:
 
-1. **Novelty check**: Use the `/aris-1-5-novelty-check` workflow (multi-source search + Gemini cross-verification) for each idea
+1. **Novelty check**: Use the `/aris-1-5-novelty-check` workflow (multi-source search + GPT-5.4 cross-verification) for each idea
 
-2. **Critical review**: Use `mcp__gemini-review__review_reply_start` with the saved completed `threadId`:
+2. **Critical review**: Use GPT-5.4 via `mcp__gemini-review__review_start-reply` (same thread):
    ```
-   mcp__gemini-review__review_reply_start:
-     threadId: [saved completed threadId from Phase 2]
-     prompt: |
-       Here are our top ideas after filtering:
-       [paste surviving ideas with novelty check results]
+   Here are our top ideas after filtering:
+   [paste surviving ideas with novelty check results]
 
-       For each, play devil's advocate:
-       - What's the strongest objection a reviewer would raise?
-       - What's the most likely failure mode?
-       - How would you rank these for a top venue submission?
-       - Which 2-3 would you actually work on?
+   For each, play devil's advocate:
+   - What's the strongest objection a reviewer would raise?
+   - What's the most likely failure mode?
+   - How would you rank these for a top venue submission?
+   - Which 2-3 would you actually work on?
    ```
 
-   After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the follow-up critique.
-
-3. **Combine rankings**: Merge your assessment with Gemini's ranking. Select top 2-3 ideas for pilot experiments.
+3. **Combine rankings**: Merge your assessment with GPT-5.4's ranking. Select top 2-3 ideas for pilot experiments.
 
 ### Phase 5: Parallel Pilot Experiments (for top 2-3 ideas)
 
@@ -159,7 +158,7 @@ Note: Skip this phase if the ideas are purely theoretical or if no GPU is availa
 
 ### Phase 6: Output — Ranked Idea Report
 
-Write a structured report to `IDEA_REPORT.md` in the project root:
+Write a structured report to `01_IDEA_REPORT.md` in the project root (fallback readers may still consume `IDEA_REPORT.md` when the canonical file is absent):
 
 ```markdown
 # Research Idea Report

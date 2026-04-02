@@ -192,7 +192,7 @@ claude
 ```
 /aris-0-2-idea-discovery "你的研究方向"          # 工作流 1：文献 → idea → 查新 → 实验
 /aris-3-1-auto-review-loop "你的论文主题"        # 工作流 2：自动 review 循环
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"   # 工作流 3：叙事 → LaTeX → PDF
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"   # 工作流 3：叙事 → LaTeX → PDF
 /aris-0-1-research-pipeline "你的研究方向"       # 完整流水线：1 → 2 → 3
 ```
 
@@ -264,7 +264,7 @@ claude
     └── ...（其余 11 个 skill 类似）
 
 项目目录（运行时生成）/
-├── AUTO_REVIEW.md                       # 审查日志（自动追加）
+├── 03_AUTO_REVIEW.md                    # canonical 审查日志（自动追加）
 └── REVIEW_STATE.json                    # 状态持久化，支持断点恢复
 ```
 

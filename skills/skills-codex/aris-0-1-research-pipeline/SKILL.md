@@ -1,11 +1,30 @@
 ---
 name: aris-0-1-research-pipeline
-description: "Full research pipeline: Workflow 1 (idea discovery) \u2192 implementation \u2192 Workflow 2 (auto review loop). Goes from a broad research direction all the way to a submission-ready paper. Use when user says \\\"\u5168\u6d41\u7a0b\\\", \\\"full pipeline\\\", \\\"\u4ece\u627eidea\u5230\u6295\u7a3f\\\", \\\"end-to-end research\\\", or wants the complete autonomous research lifecycle."
+description: "Full research pipeline: Workflow 1 (idea discovery) → implementation → Workflow 2 (auto review loop). Goes from a broad research direction all the way to a submission-ready paper. Use when user says \"全流程\", \"full pipeline\", \"从找idea到投稿\", \"end-to-end research\", or wants the complete autonomous research lifecycle."
+argument-hint: [research-direction]
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Agent, Skill, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
-# Full Research Pipeline: Idea → Experiments → Submission
+# Full Research Pipeline: Idea → Paper → Submission Gate
 
 End-to-end autonomous research workflow for: **$ARGUMENTS**
+
+## Canonical Artifacts
+
+Prefer these staged markdown artifacts throughout the pipeline:
+- `00_ENVIRONMENT_HEALTHCHECK.md`
+- `01_IDEA_REPORT.md`
+- `01_FINAL_PROPOSAL.md`
+- `02_EXPERIMENT_PLAN.md`
+- `02_EXPERIMENT_TRACKER.md`
+- `02_EXPERIMENT_RESULTS.md`
+- `03_AUTO_REVIEW.md`
+- `03_CLAIMS_FROM_RESULTS.md`
+- `04_NARRATIVE_REPORT.md`
+- `05_PAPER_PLAN.md`
+- `06_SUBMISSION_GATE.md`
+
+Fallback to legacy names only when the canonical prefixed file is absent.
 
 ## Constants
 
@@ -20,15 +39,29 @@ End-to-end autonomous research workflow for: **$ARGUMENTS**
 This skill chains the entire research lifecycle into a single pipeline:
 
 ```
-/aris-0-2-idea-discovery → implement → /aris-2-1-run-experiment → /aris-3-1-auto-review-loop → submission-ready
-├── Workflow 1 ──┤            ├────────── Workflow 2 ──────────────┤
+/aris-0-0-environment-healthcheck → /aris-0-2-idea-discovery → /aris-0-3-experiment-bridge → /aris-3-1-auto-review-loop → /aris-4-7-paper-writing → /aris-4-8-submission-gate
+       preflight                   Workflow 1                  Workflow 1.5                Workflow 2                 Workflow 3                 final gate
 ```
 
-It orchestrates two major workflows plus the implementation bridge between them.
+It orchestrates the full path from idea selection to final PDF verification.
 
 ## Pipeline
 
+### Stage 0: Environment Healthcheck
+
+Before any expensive work, run:
+
+```
+/aris-0-0-environment-healthcheck "full pipeline: $ARGUMENTS"
+```
+
+**Output:** `00_ENVIRONMENT_HEALTHCHECK.md`
+
+If the report contains blocking issues (missing reviewer backend, unavailable experiment runtime, missing LaTeX toolchain for paper stages), stop early and ask the user to fix them before continuing.
+
 ### Stage 1: Idea Discovery (Workflow 1)
+
+If `RESEARCH_BRIEF.md` exists in the project root, it will be automatically loaded as detailed context (replaces one-line prompt). See `templates/RESEARCH_BRIEF_TEMPLATE.md`.
 
 Invoke the idea discovery pipeline:
 
@@ -38,11 +71,11 @@ Invoke the idea discovery pipeline:
 
 This internally runs: `/aris-1-1-research-lit` → `/aris-1-4-idea-creator` → `/aris-1-5-novelty-check` → `/aris-1-6-research-review`
 
-**Output:** `IDEA_REPORT.md` with ranked, validated, pilot-tested ideas.
+**Output:** `01_IDEA_REPORT.md` with ranked, validated, pilot-tested ideas (fallback readers may still consume `IDEA_REPORT.md` when the canonical file is absent).
 
 **🚦 Gate 1 — Human Checkpoint:**
 
-After `IDEA_REPORT.md` is generated, **pause and present the top ideas to the user**:
+After `01_IDEA_REPORT.md` is generated, **pause and present the top ideas to the user**:
 
 ```
 📋 Idea Discovery complete. Top ideas:
@@ -59,53 +92,33 @@ Recommended: Idea 1. Shall I proceed with implementation?
 - **Pick a different idea** → proceed with their choice.
 - **Request changes** (e.g., "combine Idea 1 and 3", "focus more on X") → update the idea prompt with user feedback, re-run `/aris-0-2-idea-discovery` with refined constraints, and present again.
 - **Reject all ideas** → collect feedback on what's missing, re-run Stage 1 with adjusted research direction. Repeat until the user commits to an idea.
-- **Stop here** → save current state to `IDEA_REPORT.md` for future reference.
+- **Stop here** → save current state to `01_IDEA_REPORT.md` for future reference.
 
 **If AUTO_PROCEED=true:** Present the top ideas, wait 10 seconds for user input. If no response, auto-select the #1 ranked idea (highest pilot signal + novelty confirmed) and proceed to Stage 2. Log: `"AUTO_PROCEED: selected Idea 1 — [title]"`.
 
 > ⚠️ **This gate waits for user confirmation when AUTO_PROCEED=false.** When `true`, it auto-selects the top idea after presenting results. The rest of the pipeline (Stages 2-4) is expensive (GPU time + multiple review rounds), so set `AUTO_PROCEED=false` if you want to manually choose which idea to pursue.
 
-### Stage 2: Implementation
+### Stage 2: Experiment Bridge (Workflow 1.5)
 
-Once the user confirms which idea to pursue:
-
-1. **Read the idea details** from `IDEA_REPORT.md` (hypothesis, experimental design, pilot code)
-
-2. **Implement the full experiment**:
-   - Extend pilot code to full scale (multi-seed, full dataset, proper baselines)
-   - Add proper evaluation metrics and logging (wandb if configured)
-   - Write clean, reproducible experiment scripts
-   - Follow existing codebase conventions
-
-3. **Code review**: Before deploying, do a self-review:
-   - Are all hyperparameters configurable via argparse?
-   - Is the random seed fixed and controllable?
-   - Are results saved to JSON/CSV for later analysis?
-   - Is there proper logging for debugging?
-
-### Stage 3: Deploy Experiments (Workflow 2 — Part 1)
-
-Deploy the full-scale experiments:
+Once the user confirms which idea to pursue, hand off to the implementation-and-results bridge:
 
 ```
-/aris-2-1-run-experiment [experiment command]
+/aris-0-3-experiment-bridge "02_EXPERIMENT_PLAN.md"
 ```
 
-**What this does:**
-- Check GPU availability on configured servers
-- Sync code to remote server
-- Launch experiments in screen sessions with proper CUDA_VISIBLE_DEVICES
-- Verify experiments started successfully
+Prefer canonical artifacts:
+- `02_EXPERIMENT_PLAN.md`
+- `02_EXPERIMENT_TRACKER.md`
+- `01_FINAL_PROPOSAL.md`
 
-**Monitor progress:**
+Fallback to legacy files only if the canonical versions do not exist.
 
-```
-/aris-2-2-monitor-experiment [server]
-```
+**Expected outputs:**
+- `02_EXPERIMENT_RESULTS.md`
+- updated `02_EXPERIMENT_TRACKER.md`
+- optional `EXPERIMENT_LOG.md`
 
-Wait for experiments to complete. Collect results.
-
-### Stage 4: Auto Review Loop (Workflow 2 — Part 2)
+### Stage 3: Auto Review Loop (Workflow 2)
 
 Once initial results are in, start the autonomous improvement loop:
 
@@ -115,11 +128,11 @@ Once initial results are in, start the autonomous improvement loop:
 
 **What this does (up to 4 rounds):**
 1. GPT-5.4 xhigh reviews the work (score, weaknesses, minimum fixes)
-2. Codex implements fixes (code changes, new experiments, reframing)
+2. Claude Code implements fixes (code changes, new experiments, reframing)
 3. Deploy fixes, collect new results
 4. Re-review → repeat until score ≥ 6/10 or 4 rounds reached
 
-**Output:** `AUTO_REVIEW.md` with full review history and final assessment.
+**Output:** `03_AUTO_REVIEW.md` with full review history and final assessment.
 
 ### Stage 5: Final Summary
 
@@ -170,4 +183,3 @@ After the auto-review loop completes, write a final status report:
 | 4. Auto Review | 1-4 hours (depends on experiments) | Yes ✅ |
 
 **Sweet spot**: Run Stage 1-2 in the evening, launch Stage 3-4 before bed, wake up to a reviewed paper.
-

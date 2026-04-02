@@ -25,7 +25,7 @@ Gather experiment data from whatever sources are available in the project:
 
 1. **W&B** (preferred): `wandb.Api().run("<entity>/<project>/<run_id>").history()` — metrics, training curves, comparisons
 2. **EXPERIMENT_LOG.md**: full results table with baselines and verdicts
-3. **EXPERIMENT_TRACKER.md**: check which experiments are DONE vs still running
+3. **02_EXPERIMENT_TRACKER.md** (fallback: `EXPERIMENT_TRACKER.md`): check which experiments are DONE vs still running
 4. **Log files**: `ssh server "tail -100 /path/to/training.log"` if no other source
 5. **docs/research_contract.md**: intended claims and experiment design
 

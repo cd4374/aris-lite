@@ -106,7 +106,7 @@ For skills you use often, convert them to Cursor Rules so they load automaticall
    ---
    description: "Autonomous multi-round research review loop"
    globs:
-     - "AUTO_REVIEW.md"
+     - "03_AUTO_REVIEW.md"
      - "REVIEW_STATE.json"
    ---
 
@@ -143,7 +143,7 @@ Use these sub-skills in sequence (the SKILL.md references them as
 5. @skills/aris-1-9-research-refine-pipeline/SKILL.md — refine method + plan experiments
 ```
 
-> **Tip:** Cursor's context window may be smaller than Claude Code's. For long pipelines, run each phase in a separate chat and pass results via files (e.g., `IDEA_REPORT.md`, `refine-logs/FINAL_PROPOSAL.md`).
+> **Tip:** Cursor's context window may be smaller than Claude Code's. For long pipelines, run each phase in a separate chat and pass results via files (e.g., `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`).
 
 ### Workflow 1.5: Experiment Bridge
 
@@ -156,7 +156,7 @@ Use these sub-skills in sequence (the SKILL.md references them as
 ```
 @skills/aris-0-3-experiment-bridge/SKILL.md
 
-Read refine-logs/EXPERIMENT_PLAN.md and implement the experiments.
+Read 02_EXPERIMENT_PLAN.md (fallback: `refine-logs/EXPERIMENT_PLAN.md`) and implement the experiments.
 Deploy to GPU via @skills/aris-2-1-run-experiment/SKILL.md.
 ```
 
@@ -182,15 +182,15 @@ Use MCP tool mcp__codex__codex for external review.
 
 **Claude Code:**
 ```
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"
 ```
 
 **Cursor equivalent:**
 ```
 @skills/aris-4-7-paper-writing/SKILL.md
-@NARRATIVE_REPORT.md
+@04_NARRATIVE_REPORT.md
 
-Run the full paper writing pipeline from NARRATIVE_REPORT.md.
+Run the full paper writing pipeline from 04_NARRATIVE_REPORT.md.
 
 Sub-skills to use in sequence (replace /skill-name from SKILL.md):
 1. @skills/aris-4-1-paper-plan/SKILL.md — outline + claims-evidence matrix
@@ -206,14 +206,14 @@ For the full pipeline (`/aris-0-1-research-pipeline`), break it into stages acro
 
 | Stage | What to do | Output files |
 |-------|-----------|-------------|
-| 1 | `@skills/aris-0-2-idea-discovery/SKILL.md` + your direction | `IDEA_REPORT.md`, `refine-logs/FINAL_PROPOSAL.md`, `refine-logs/EXPERIMENT_PLAN.md` |
-| 2 | `@skills/aris-0-3-experiment-bridge/SKILL.md` + `@refine-logs/EXPERIMENT_PLAN.md` + `@refine-logs/FINAL_PROPOSAL.md` | Experiment scripts, results |
-| 3 | `@skills/aris-3-1-auto-review-loop/SKILL.md` + your topic | `AUTO_REVIEW.md` |
-| 4 | `@skills/aris-4-7-paper-writing/SKILL.md` + `@NARRATIVE_REPORT.md` | `paper/` directory |
+| 1 | `@skills/aris-0-2-idea-discovery/SKILL.md` + your direction | `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`, `02_EXPERIMENT_PLAN.md` |
+| 2 | `@skills/aris-0-3-experiment-bridge/SKILL.md` + `@02_EXPERIMENT_PLAN.md` + `@01_FINAL_PROPOSAL.md` | `02_EXPERIMENT_RESULTS.md`, updated `02_EXPERIMENT_TRACKER.md` |
+| 3 | `@skills/aris-3-1-auto-review-loop/SKILL.md` + your topic | `03_AUTO_REVIEW.md`, `04_NARRATIVE_REPORT.md` |
+| 4 | `@skills/aris-4-7-paper-writing/SKILL.md` + `@04_NARRATIVE_REPORT.md` | `paper/`, `06_SUBMISSION_GATE.md` |
 
 Each stage reads the previous stage's output files, so context carries forward even across sessions.
 
-> **Note:** Stage 4 expects a `NARRATIVE_REPORT.md` describing your research story (claims, experiments, results). This is typically written by you based on `AUTO_REVIEW.md` and experiment results — see [NARRATIVE_REPORT_EXAMPLE.md](NARRATIVE_REPORT_EXAMPLE.md) for the expected format.
+> **Note:** Stage 4 expects `04_NARRATIVE_REPORT.md` (fallback: `NARRATIVE_REPORT.md`) describing your research story (claims, experiments, results). This is typically written from `03_AUTO_REVIEW.md` and experiment results — see [NARRATIVE_REPORT_EXAMPLE.md](NARRATIVE_REPORT_EXAMPLE.md) for the expected format.
 
 ## 5. MCP Tool Calls
 
@@ -234,19 +234,19 @@ ARIS workflows persist state to files for crash recovery. These work identically
 | File | Purpose | Written by |
 |------|---------|-----------|
 | `REVIEW_STATE.json` | Auto-review loop progress | `/aris-3-1-auto-review-loop` |
-| `AUTO_REVIEW.md` | Cumulative review log | `/aris-3-1-auto-review-loop` |
-| `IDEA_REPORT.md` | Ranked ideas with pilot results | `/aris-0-2-idea-discovery` |
-| `PAPER_PLAN.md` | Paper outline + claims-evidence matrix | `/aris-4-1-paper-plan` |
-| `refine-logs/FINAL_PROPOSAL.md` | Refined method proposal | `/aris-1-7-research-refine` |
-| `refine-logs/EXPERIMENT_PLAN.md` | Experiment roadmap | `/aris-1-8-experiment-plan` |
-| `refine-logs/EXPERIMENT_TRACKER.md` | Run-by-run execution status | `/aris-1-8-experiment-plan` |
+| `03_AUTO_REVIEW.md` | Cumulative review log | `/aris-3-1-auto-review-loop` |
+| `01_IDEA_REPORT.md` | Ranked ideas with pilot results | `/aris-0-2-idea-discovery` |
+| `05_PAPER_PLAN.md` | Paper outline + claims-evidence matrix | `/aris-4-1-paper-plan` |
+| `01_FINAL_PROPOSAL.md` | Refined method proposal | `/aris-1-7-research-refine` |
+| `02_EXPERIMENT_PLAN.md` | Experiment roadmap | `/aris-1-8-experiment-plan` |
+| `02_EXPERIMENT_TRACKER.md` | Run-by-run execution status | `/aris-1-8-experiment-plan` |
 
 If a Cursor chat session ends mid-workflow, start a new session and reference the state file:
 
 ```
 @skills/aris-3-1-auto-review-loop/SKILL.md
 @REVIEW_STATE.json
-@AUTO_REVIEW.md
+@03_AUTO_REVIEW.md
 
 Resume the auto review loop from the saved state.
 ```
@@ -295,7 +295,7 @@ Run the auto review loop. Topic: "your paper topic".
 
 # Paper writing
 @skills/aris-4-7-paper-writing/SKILL.md
-@NARRATIVE_REPORT.md
+@04_NARRATIVE_REPORT.md
 Write the paper from this narrative report.
 
 # Run experiment

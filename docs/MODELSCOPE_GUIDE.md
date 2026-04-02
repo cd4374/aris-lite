@@ -184,7 +184,7 @@ claude
 ```
 /aris-0-2-idea-discovery "你的研究方向"          # 工作流 1：文献 → idea → 查新 → 精炼 → 实验规划
 /aris-3-1-auto-review-loop "你的论文主题"        # 工作流 2：自动 review 循环
-/aris-4-7-paper-writing "NARRATIVE_REPORT.md"   # 工作流 3：叙事 → LaTeX → PDF
+/aris-4-7-paper-writing "04_NARRATIVE_REPORT.md"   # 工作流 3：叙事 → LaTeX → PDF
 /aris-0-1-research-pipeline "你的研究方向"       # 完整流水线：1 → 2 → 3
 ```
 

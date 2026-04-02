@@ -285,7 +285,7 @@ Update the report with the reviewer's minimum viable evidence package.
 
 ## Phase 6: Final Report
 
-Write or update `IDEA_REPORT.md` with a robotics-specific structure so it stays compatible with downstream workflows.
+Write or update `01_IDEA_REPORT.md` with a robotics-specific structure so it stays compatible with downstream workflows (fallback readers may still consume `IDEA_REPORT.md`).
 
 ```markdown
 # Robotics Idea Discovery Report

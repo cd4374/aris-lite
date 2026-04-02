@@ -11,7 +11,7 @@ ARIS workflows can run for hours (idea discovery, auto-review loops, overnight t
 1. **Context compaction** — when the context window fills up, Claude Code auto-compresses prior messages. After compaction, the LLM only has a compressed summary and may forget which stage you're in, what experiments are running, or what to do next.
 2. **Proactive new sessions** — LLM capability degrades noticeably when context usage exceeds ~50%. Experienced users proactively start fresh sessions to restore full model capability, rather than waiting for auto-compaction. This means the LLM must reconstruct project state from disk.
 
-ARIS already persists some state to files (`REVIEW_STATE.json`, `AUTO_REVIEW.md`), but **there is no systematic mechanism to ensure the LLM reads those files on recovery**. After compaction, it often doesn't.
+ARIS already persists some state to files (`REVIEW_STATE.json`, `03_AUTO_REVIEW.md`; fallback: `AUTO_REVIEW.md`), but **there is no systematic mechanism to ensure the LLM reads those files on recovery**. After compaction, it often doesn't.
 
 ## The Core Solution: Pipeline Status
 
@@ -60,9 +60,9 @@ The LLM should update Pipeline Status **immediately** when any of these happen:
 
 ### Why You Need a Research Contract
 
-After Workflow 1 (`/aris-0-2-idea-discovery`), `IDEA_REPORT.md` contains 8-12 candidate ideas. Once you pick one and move to implementation, keeping all candidates in context wastes the LLM's working memory and degrades its output quality.
+After Workflow 1 (`/aris-0-2-idea-discovery`), `01_IDEA_REPORT.md` contains the canonical ranked idea set (fallback: `IDEA_REPORT.md`). Once you pick one and move to implementation, keeping all candidates in context wastes the LLM's working memory and degrades its output quality.
 
-**`docs/research_contract.md`** solves this by extracting *only the active idea* into a focused working document — claims, experiment design, baselines, and results. New sessions read this instead of the full IDEA_REPORT.md. See [`templates/RESEARCH_CONTRACT_TEMPLATE.md`](../templates/RESEARCH_CONTRACT_TEMPLATE.md) for the template.
+**`docs/research_contract.md`** solves this by extracting *only the active idea* into a focused working document — claims, experiment design, baselines, and results. New sessions read this instead of the full `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`). See [`templates/RESEARCH_CONTRACT_TEMPLATE.md`](../templates/RESEARCH_CONTRACT_TEMPLATE.md) for the template.
 
 - **Created**: when an idea is selected (Workflow 1 → Workflow 1.5)
 - **Updated**: as baselines are reproduced, experiments complete, decisions are made
@@ -73,7 +73,7 @@ After Workflow 1 (`/aris-0-2-idea-discovery`), `IDEA_REPORT.md` contains 8-12 ca
 **New session or post-compaction**, the LLM reads in this order:
 
 1. `CLAUDE.md` → `## Pipeline Status` (30-second orientation)
-2. `docs/research_contract.md` (focused context for the active idea — not the full IDEA_REPORT)
+2. `docs/research_contract.md` (focused context for the active idea — not the full `01_IDEA_REPORT.md`)
 3. Project notes or log files, if you maintain any (restore debugging context, decision rationale)
 4. If `active_tasks`/`training_status` is non-empty → check remote sessions, rebuild monitoring
 
@@ -112,7 +112,7 @@ The Pipeline Status convention works without any tooling — the LLM just needs 
 | `session-restore.sh` | `PreToolUse` (first call) | New session → auto-read Pipeline Status + state files |
 | `context-refresh.sh` | `PreToolUse` (throttled) | Periodically inject Pipeline Status into context |
 | `pre-compact-remind.sh` | `PreCompact` | Remind LLM to save state before compaction |
-| `progress-remind.sh` | `PostToolUse` (Write/Edit) | Remind LLM to update EXPERIMENT_TRACKER.md after code changes |
+| `progress-remind.sh` | `PostToolUse` (Write/Edit) | Remind LLM to update `02_EXPERIMENT_TRACKER.md` after code changes |
 
 ### Setup
 
@@ -261,7 +261,7 @@ echo "[pre-compact] Context compaction is about to happen."
 echo "[pre-compact] Before continuing, ensure these are up to date:"
 echo "  1. CLAUDE.md Pipeline Status (stage, idea, active_tasks, next)"
 echo "  2. docs/research_contract.md (current idea context and results)"
-echo "  3. EXPERIMENT_TRACKER.md (any unreported results)"
+echo "  3. 02_EXPERIMENT_TRACKER.md (any unreported results)"
 echo "  4. REVIEW_STATE.json (if running auto-review-loop)"
 echo "[pre-compact] After compaction, read CLAUDE.md and docs/research_contract.md to recover."
 HOOKEOF
@@ -289,7 +289,7 @@ CWD=$(pwd)
 
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 case "$FILE_PATH" in
-  */CLAUDE.md|*/IDEA_REPORT.md|*/AUTO_REVIEW.md|*/REVIEW_STATE.json|*/EXPERIMENT_TRACKER.md|*/research_contract.md)
+  */CLAUDE.md|*/01_IDEA_REPORT.md|*/03_AUTO_REVIEW.md|*/REVIEW_STATE.json|*/02_EXPERIMENT_TRACKER.md|*/research_contract.md)
     exit 0 ;;
 esac
 
@@ -301,7 +301,7 @@ echo "$COUNT" > "$COUNTER_FILE"
 
 [ $((COUNT % 10)) -ne 0 ] && exit 0
 
-echo "[progress-remind] ${COUNT} code edits so far. If you have milestone results, update EXPERIMENT_TRACKER.md and Pipeline Status."
+echo "[progress-remind] ${COUNT} code edits so far. If you have milestone results, update 02_EXPERIMENT_TRACKER.md and Pipeline Status."
 HOOKEOF
 chmod +x ~/.claude/hooks/progress-remind.sh
 ```

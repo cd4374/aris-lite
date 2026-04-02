@@ -1,5 +1,5 @@
 ---
-name: aris-1-7-research-refine
+name: "aris-1-7-research-refine"
 description: "Turn a vague research direction into a problem-anchored, elegant, frontier-aware, implementation-oriented method plan via iterative GPT-5.4 review. Use when the user says \"refine my approach\", \"帮我细化方案\", \"decompose this problem\", \"打磨idea\", \"refine research plan\", \"细化研究方案\", or wants a concrete research method that stays simple, focused, and top-venue ready instead of a vague or overbuilt idea."
 ---
 
@@ -26,7 +26,7 @@ User input (PROBLEM + vague APPROACH)
   -> Phase 1 (Claude): Scan grounding papers -> identify technical gap -> choose the sharpest route -> write focused proposal
   -> Phase 2 (Codex/GPT-5.4): Review for fidelity, specificity, contribution quality, and frontier leverage
   -> Phase 3 (Claude): Anchor check + simplicity check -> revise method -> rewrite full proposal
-  -> Phase 4 (Codex, same agent): Re-evaluate revised proposal
+  -> Phase 4 (Codex, same thread): Re-evaluate revised proposal
   -> Repeat Phase 3-4 until OVERALL SCORE >= 9 or MAX_ROUNDS reached
   -> Phase 5: Save full history to refine-logs/
   -> Optional handoff: /aris-1-8-experiment-plan for a detailed execution-ready experiment roadmap
@@ -45,10 +45,43 @@ User input (PROBLEM + vague APPROACH)
 
 > Override via argument if needed, e.g. `/aris-1-7-research-refine "problem | approach" -- max rounds: 3, threshold: 9`.
 
+## State Persistence (Checkpoint Recovery)
+
+Long-running refinement sessions may fail mid-way (e.g., API timeout, context compaction, or session interruption). To avoid losing completed work, persist state to `refine-logs/REFINE_STATE.json` after each phase boundary:
+
+```json
+{
+  "phase": "review",
+  "round": 1,
+  "threadId": "019cd392-...",
+  "last_score": 6.5,
+  "last_verdict": "REVISE",
+  "status": "in_progress",
+  "timestamp": "2026-03-22T20:00:00"
+}
+```
+
+**Field definitions:**
+
+| Field | Values | Meaning |
+|-------|--------|---------|
+| `phase` | `"anchor"` / `"proposal"` / `"review"` / `"refine"` / `"done"` | Last **completed** phase |
+| `round` | 0–MAX_ROUNDS | Current round number |
+| `threadId` | string or null | Reviewer thread ID for `codex-reply` continuity |
+| `last_score` | number or null | Most recent overall score from reviewer |
+| `last_verdict` | string or null | Most recent verdict (READY / REVISE / RETHINK) |
+| `status` | `"in_progress"` / `"completed"` | Loop status |
+| `timestamp` | ISO 8601 | When state was last written |
+
+**Write rules:**
+- **Write after each phase completes** (not before). Overwrite each time — only the latest state matters.
+- **On completion** (Phase 5 finished), set `"status": "completed"`.
+
 ## Output Structure
 
 ```
 refine-logs/
+├── REFINE_STATE.json
 ├── round-0-initial-proposal.md
 ├── round-1-review.md
 ├── round-1-refinement.md
@@ -56,7 +89,7 @@ refine-logs/
 ├── round-2-refinement.md
 ├── ...
 ├── REVIEW_SUMMARY.md
-├── FINAL_PROPOSAL.md
+├── 01_FINAL_PROPOSAL.md
 ├── REFINEMENT_REPORT.md
 └── score-history.md
 ```
@@ -64,6 +97,32 @@ refine-logs/
 Every `round-N-refinement.md` must contain a **full anchored proposal**, not just incremental fixes.
 
 ## Workflow
+
+### Initialization (Checkpoint Recovery)
+
+Before starting any phase, check whether a previous run left a checkpoint:
+
+1. **Check for `refine-logs/REFINE_STATE.json`**:
+   - If it **does not exist** → **fresh start** (proceed to Phase 0 normally)
+   - If it exists AND `status` is `"completed"` → **fresh start** (delete state file, previous run finished)
+   - If it exists AND `status` is `"in_progress"` AND `timestamp` is **older than 24 hours** → **fresh start** (stale state from a killed/abandoned run — delete the file)
+   - If it exists AND `status` is `"in_progress"` AND `timestamp` is **within 24 hours** → **resume**
+
+2. **On resume**, read the state file and recover context:
+   - Read all existing `refine-logs/round-*.md` files to restore prior work
+   - Read `refine-logs/score-history.md` if it exists
+   - Recover `threadId` for reviewer thread continuity
+   - Log to the user: `"Checkpoint found. Resuming after phase: {phase}, round: {round}."`
+   - **Jump to the next phase** based on the saved `phase` value:
+
+   | Saved `phase` | What was completed | Resume from |
+   |---------------|-------------------|-------------|
+   | `"anchor"` | Phase 0 done | Phase 1 (read anchor from round-0 context) |
+   | `"proposal"` | Phase 1 done | Phase 2 (read `round-0-initial-proposal.md`) |
+   | `"review"` | Phase 2 or 4 done | Phase 3 (read latest `round-N-review.md`) |
+   | `"refine"` | Phase 3 done | Phase 4 (read latest `round-N-refinement.md`) |
+
+3. **On fresh start**, ensure `refine-logs/` directory exists and proceed to Phase 0.
 
 ### Phase 0: Freeze the Problem Anchor
 
@@ -78,6 +137,8 @@ Write:
 - **Success condition**: What evidence would make the user say "yes, this method addresses the actual problem"?
 
 If later reviewer feedback would change the problem being solved, mark that as **drift** and push back or adapt carefully.
+
+**Checkpoint:** Write `refine-logs/REFINE_STATE.json` with `{"phase": "anchor", "round": 0, "threadId": null, "last_score": null, "last_verdict": null, "status": "in_progress", "timestamp": "<now>"}`.
 
 ### Phase 1: Build the Initial Proposal
 
@@ -251,12 +312,16 @@ Use this structure:
 - Timeline:
 ```
 
+**Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "proposal", "round": 0, ...}`.
+
 ### Phase 2: External Method Review (Round 1)
 
 Send the full proposal to GPT-5.4 for an **elegance-first, frontier-aware, method-first** review. The reviewer should spend most of the critique budget on the method itself, not on expanding the experiment menu.
 
 ```
 mcp__claude-review__review_start:
+  model: REVIEWER_MODEL
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     You are a senior ML reviewer for a top venue (NeurIPS/ICML/ICLR).
     This is an early-stage, method-first research proposal.
@@ -320,11 +385,13 @@ mcp__claude-review__review_start:
 
 After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
 
-**CRITICAL: Save the returned `jobId`**, poll `mcp__claude-review__review_status` until `done=true`, then save the completed `threadId` from the status result for all later rounds.
+**CRITICAL: Save the `threadId`** from this call for all later rounds.
 
 **CRITICAL: Save the FULL raw response** verbatim.
 
 Save review to `refine-logs/round-1-review.md` with the raw response in a `<details>` block.
+
+**Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "review", "round": 1, "threadId": "<saved>", "last_score": <parsed>, "last_verdict": "<parsed>", ...}`.
 
 ### Phase 3: Parse Feedback and Revise the Method
 
@@ -426,13 +493,17 @@ Save to `refine-logs/round-N-refinement.md`:
 [Full updated proposal from Problem Anchor through Claim-Driven Validation Sketch]
 ```
 
+**Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "refine", "round": N, ...}`.
+
 ### Phase 4: Re-evaluation (Round 2+)
 
-Send the revised proposal back to GPT-5.4 in the **same agent**:
+Send the revised proposal back to GPT-5.4 in the **same thread**:
 
 ```
-mcp__claude-review__review_reply_start:
+mcp__claude-review__review_start-reply:
   threadId: [saved from Phase 2]
+  model: REVIEWER_MODEL
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     [Round N re-evaluation]
 
@@ -461,9 +532,9 @@ mcp__claude-review__review_reply_start:
     Same output format: 7 scores, overall score, verdict, drift warning, simplification opportunities, modernization opportunities, remaining action items.
 ```
 
-After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
-
 Save review to `refine-logs/round-N-review.md`.
+
+**Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "review", "round": N, "threadId": "<saved>", "last_score": <parsed>, "last_verdict": "<parsed>", ...}`.
 
 Then return to Phase 3 until:
 
@@ -511,7 +582,7 @@ This file is the high-level round-by-round review record. It should answer: each
 - Remaining weaknesses:
 ```
 
-#### Step 5.2: Write `refine-logs/FINAL_PROPOSAL.md`
+#### Step 5.2: Write `01_FINAL_PROPOSAL.md`
 
 This file is the clean final version document. It should contain only the final proposal itself, without review chatter, round history, or raw reviewer output.
 
@@ -540,7 +611,7 @@ If the final verdict is not READY, still write the best current final version he
 
 ## Output Files
 - Review summary: `refine-logs/REVIEW_SUMMARY.md`
-- Final proposal: `refine-logs/FINAL_PROPOSAL.md`
+- Final proposal: `01_FINAL_PROPOSAL.md` (fallback readers may still consume `refine-logs/FINAL_PROPOSAL.md`)
 
 ## Score Evolution
 
@@ -556,7 +627,7 @@ If the final verdict is not READY, still write the best current final version he
 | 2     | ...                     | ...              | ...    |
 
 ## Final Proposal Snapshot
-- Canonical clean version lives in `refine-logs/FINAL_PROPOSAL.md`
+- Canonical clean version lives in `01_FINAL_PROPOSAL.md` (fallback: `refine-logs/FINAL_PROPOSAL.md`)
 - Summarize the final thesis in 3-5 bullets here
 
 ## Method Evolution Highlights
@@ -618,9 +689,11 @@ Remaining concerns:
 
 Review summary: refine-logs/REVIEW_SUMMARY.md
 Full report: refine-logs/REFINEMENT_REPORT.md
-Final proposal: refine-logs/FINAL_PROPOSAL.md
+Final proposal: 01_FINAL_PROPOSAL.md
 Suggested next step: /aris-1-8-experiment-plan
 ```
+
+**Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "done", "status": "completed", ...}`.
 
 ## Key Rules
 
@@ -634,8 +707,8 @@ Suggested next step: /aris-1-8-experiment-plan
 - **Minimal experiments.** Inside this skill, experiments only need to prove the core claims.
 - **Review the mechanism, not the parts count.** A long module list is not novelty.
 - **Pushback is encouraged.** If reviewer feedback causes drift or unnecessary complexity, argue back with evidence.
-- **Always ask the Claude reviewer for strict, high-rigor feedback** in every review round.
-- **Save the completed `threadId` from Phase 2** and use `mcp__claude-review__review_reply_start` plus `mcp__claude-review__review_status` for later rounds.
+- **ALWAYS use `config: {"model_reasoning_effort": "xhigh"}`** for all Codex review calls.
+- **Save `threadId` from Phase 2** and use `mcp__claude-review__review_start-reply` for later rounds.
 - **Do not fabricate results.** Only describe expected evidence and planned experiments.
 - **Be specific about compute and data assumptions.** Vague "we'll train a model" is not enough.
 - **Document everything.** Save every raw review, every anchor check, every simplicity check, and every major method change.

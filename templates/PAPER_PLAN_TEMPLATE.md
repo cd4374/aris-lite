@@ -1,6 +1,11 @@
-# Paper Plan
+# [05] Paper Plan
 
-> **Template for Workflow 3 — skip planning phase.** Fill in, then run `/aris-4-7-paper-writing "PAPER_PLAN.md"`.
+> Artifact: 05_PAPER_PLAN.md
+> Stage: 05 Paper Planning
+> Used by: /aris-4-7-paper-writing
+> Generated: [YYYY-MM-DD]
+
+> **Template for Workflow 3 — skip planning phase.** Fill in, then run `/aris-4-7-paper-writing "05_PAPER_PLAN.md"`.
 
 ## Metadata
 - **Title**: [Title]

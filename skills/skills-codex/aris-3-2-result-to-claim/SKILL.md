@@ -1,18 +1,15 @@
 ---
 name: aris-3-2-result-to-claim
-description: "Use when experiments complete to judge what claims the results support, what they do not, and what evidence is still missing. A secondary Codex agent evaluates results against intended claims and routes to the next action (pivot, supplement, or confirm). Use after experiments finish - before writing the paper or running ablations."
-allowed-tools: Bash(*), Read, Grep, Glob, Write, Edit, Agent
+description: Use when experiments complete to judge what claims the results support, what they don't, and what evidence is still missing. Codex MCP evaluates results against intended claims and routes to next action (pivot, supplement, or confirm). Use after experiments finish — before writing the paper or running ablations.
+argument-hint: [experiment-description-or-wandb-run]
+allowed-tools: Bash(*), Read, Grep, Glob, Write, Edit, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Result-to-Claim Gate
 
-Experiments produce numbers; this gate decides what those numbers *mean*. Collect results from available sources, get an objective judgment, then route based on the verdict.
+Experiments produce numbers; this gate decides what those numbers *mean*. Collect results from available sources, get a Codex judgment, then auto-route based on the verdict.
 
 ## Context: $ARGUMENTS
-
-## Constants
-
-- **REVIEWER_MODEL = `gpt-5.4`** - Used via a secondary Codex agent for objective claim assessment.
 
 ## When to Use
 
@@ -26,28 +23,26 @@ Experiments produce numbers; this gate decides what those numbers *mean*. Collec
 
 Gather experiment data from whatever sources are available in the project:
 
-1. **W&B** (preferred): `wandb.Api().run("<entity>/<project>/<run_id>").history()` - metrics, training curves, comparisons
-2. **`EXPERIMENT_LOG.md`** - full results table with baselines and verdicts
-3. **`EXPERIMENT_TRACKER.md`** - check which experiments are done vs still running
-4. **Log files** - `ssh server "tail -100 /path/to/training.log"` if no other source
-5. **`docs/research_contract.md`** or project notes - intended claims and experiment design
+1. **W&B** (preferred): `wandb.Api().run("<entity>/<project>/<run_id>").history()` — metrics, training curves, comparisons
+2. **EXPERIMENT_LOG.md**: full results table with baselines and verdicts
+3. **02_EXPERIMENT_TRACKER.md** (fallback: `EXPERIMENT_TRACKER.md`): check which experiments are DONE vs still running
+4. **Log files**: `ssh server "tail -100 /path/to/training.log"` if no other source
+5. **docs/research_contract.md**: intended claims and experiment design
 
 Assemble the key information:
-
 - What experiments were run (method, dataset, config)
 - Main metrics and baseline comparisons (deltas)
 - The intended claim these experiments were designed to test
 - Any known confounds or caveats
 
-### Step 2: Secondary Codex Judgment
+### Step 2: Codex Judgment
 
-Send the collected results to a secondary Codex agent for objective evaluation:
+Send the collected results to Codex for objective evaluation:
 
-```text
-spawn_agent:
-  model: REVIEWER_MODEL
-  reasoning_effort: xhigh
-  message: |
+```
+mcp__codex__codex:
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
     RESULT-TO-CLAIM EVALUATION
 
     I need you to judge whether experimental results support the intended claim.
@@ -61,7 +56,7 @@ spawn_agent:
     [paste key numbers, comparison deltas, significance]
 
     Baselines:
-    [baseline numbers and sources - reproduced or from paper]
+    [baseline numbers and sources — reproduced or from paper]
 
     Known caveats:
     [any confounding factors, limited datasets, missing comparisons]
@@ -79,11 +74,9 @@ spawn_agent:
     A single positive result on one dataset does not support a general claim.
 ```
 
-If delegation is unavailable, run the same evaluation locally and mark the verdict `[pending external review]` instead of blocking the pipeline.
-
 ### Step 3: Parse and Normalize
 
-Extract structured fields from the response:
+Extract structured fields from Codex response:
 
 ```markdown
 - claim_supported: yes | partial | no
@@ -97,33 +90,33 @@ Extract structured fields from the response:
 
 ### Step 4: Route Based on Verdict
 
-#### `no` - Claim not supported
+#### `no` — Claim not supported
 
-1. Record a postmortem in `findings.md`:
-   - What was tested, what failed, and hypotheses for why
-   - Constraints for future attempts (what **not** to try again)
-2. Update the project pipeline status in project notes
-3. Decide whether to pivot to the next idea from `IDEA_CANDIDATES.md` or try an alternative approach
+1. Record postmortem in findings.md (Research Findings section):
+   - What was tested, what failed, hypotheses for why
+   - Constraints for future attempts (what NOT to try again)
+2. Update CLAUDE.md Pipeline Status
+3. Decide whether to pivot to next idea from IDEA_CANDIDATES.md or try an alternative approach
 
-#### `partial` - Claim partially supported
+#### `partial` — Claim partially supported
 
-1. Update the working claim to reflect what **is** supported
-2. Record the gap in `findings.md`
+1. Update the working claim to reflect what IS supported
+2. Record the gap in findings.md
 3. Design and run supplementary experiments to fill evidence gaps
-4. Re-run `/aris-3-2-result-to-claim` after supplementary experiments complete
-5. If the same claim gets multiple `partial` verdicts, record the analysis in `findings.md` and consider narrowing the claim scope or switching ideas
+4. Re-run result-to-claim after supplementary experiments complete
+5. **Multiple rounds of `partial` on the same claim** → record analysis in findings.md, consider whether to narrow the claim scope or switch ideas
 
-#### `yes` - Claim supported
+#### `yes` — Claim supported
 
-1. Record the confirmed claim in project notes
-2. If ablation studies are incomplete, trigger `/aris-2-4-ablation-planner`
-3. If all evidence is in, move to paper writing
+1. Record confirmed claim in project notes
+2. If ablation studies are incomplete → trigger `/aris-2-4-ablation-planner`
+3. If all evidence is in → ready for paper writing
 
 ## Rules
 
-- **The secondary Codex agent is the judge, not the local executor.** The local executor collects evidence and routes; the reviewer agent evaluates. This prevents post-hoc rationalization.
-- Do not inflate claims beyond what the data supports. If the verdict says `partial`, do not round up to `yes`.
+- **Codex is the judge, not CC.** CC collects evidence and routes; Codex evaluates. This prevents post-hoc rationalization.
+- Do not inflate claims beyond what the data supports. If Codex says "partial", do not round up to "yes".
 - A single positive result on one dataset does not support a general claim. Be honest about scope.
 - If `confidence` is low, treat the judgment as inconclusive and add experiments rather than committing to a claim.
-- If reviewer delegation is unavailable, make the best local judgment you can and mark it `[pending external review]`.
-- Always record the verdict and reasoning in `findings.md`, regardless of outcome.
+- If Codex MCP is unavailable (call fails), CC makes its own judgment and marks it `[pending Codex review]` — do not block the pipeline.
+- Always record the verdict and reasoning in findings.md, regardless of outcome.

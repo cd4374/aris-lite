@@ -1,6 +1,6 @@
 ---
-name: aris-4-6-auto-paper-improvement-loop
-description: "Autonomously improve a generated paper via Gemini review through gemini-review MCP → implement fixes → recompile, for 2 rounds. Use when user says \"改论文\", \"improve paper\", \"论文润色循环\", \"auto improve\", or wants to iteratively polish a generated paper."
+name: "aris-4-6-auto-paper-improvement-loop"
+description: "Autonomously improve a generated paper via Gemini review through gemini-review MCP → implement fixes → recompile, for 2 rounds. Use when user says \\"改论文\\", \\"improve paper\\", \\"论文润色循环\\", \\"auto improve\\", or wants to iteratively polish a generated paper."
 ---
 
 > Override for Codex users who want **Gemini**, not a second Codex agent, to act as the reviewer. Install this package **after** `skills/skills-codex/*`.
@@ -239,7 +239,7 @@ Create `PAPER_IMPROVEMENT_LOG.md` in the paper directory:
 ## Round 1 Review & Fixes
 
 <details>
-<summary>Gemini Review (Round 1)</summary>
+<summary>Gemini review Review (Round 1)</summary>
 
 [Full raw review text, verbatim]
 
@@ -253,7 +253,7 @@ Create `PAPER_IMPROVEMENT_LOG.md` in the paper directory:
 ## Round 2 Review & Fixes
 
 <details>
-<summary>Gemini Review (Round 2)</summary>
+<summary>Gemini review Review (Round 2)</summary>
 
 [Full raw review text, verbatim]
 

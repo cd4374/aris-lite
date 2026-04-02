@@ -1,6 +1,8 @@
 ---
 name: aris-8-1-idea-discovery-robot
-description: "Workflow 1 adaptation for robotics and embodied AI. Orchestrates robotics-aware literature survey, idea generation, novelty check, and critical review to go from a broad robotics direction to benchmark-grounded, simulation-first ideas. Use when user says \\\"robotics idea discovery\\\", \\\"\u673a\u5668\u4eba\u627eidea\\\", \\\"embodied AI idea\\\", \\\"\u673a\u5668\u4eba\u65b9\u5411\u63a2\u7d22\\\", \\\"sim2real \u9009\u9898\\\", or wants ideas for manipulation, locomotion, navigation, drones, humanoids, or general robot learning."
+description: "Workflow 1 adaptation for robotics and embodied AI. Orchestrates robotics-aware literature survey, idea generation, novelty check, and critical review to go from a broad robotics direction to benchmark-grounded, simulation-first ideas. Use when user says \"robotics idea discovery\", \"机器人找idea\", \"embodied AI idea\", \"机器人方向探索\", \"sim2real 选题\", or wants ideas for manipulation, locomotion, navigation, drones, humanoids, or general robot learning."
+argument-hint: [robotics-direction]
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Agent, Skill, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Robotics Idea Discovery Pipeline
@@ -37,7 +39,7 @@ The goal is not to produce flashy demos. The goal is to produce ideas that are:
 - **PILOT_MODE = `sim-first`** — Prefer simulation or offline-log pilots before any hardware execution
 - **REAL_ROBOT_PILOTS = `explicit approval only`** — Never assume physical robot access or approval
 - **AUTO_PROCEED = true** — If user does not respond at checkpoints, proceed with the best sim-first option
-- **REVIEWER_MODEL = `gpt-5.4`** — External reviewer model via a secondary Codex agent
+- **REVIEWER_MODEL = `gpt-5.4`** — External reviewer model via Codex MCP
 - **TARGET_VENUES = CoRL, RSS, ICRA, IROS, RA-L** — Default novelty and reviewer framing
 
 > Override inline, e.g. `/aris-8-1-idea-discovery-robot "bimanual manipulation" — only sim ideas, no real robot` or `/aris-8-1-idea-discovery-robot "drone navigation" — focus on CoRL/RSS, 2 pilot ideas max`
@@ -283,7 +285,7 @@ Update the report with the reviewer's minimum viable evidence package.
 
 ## Phase 6: Final Report
 
-Write or update `IDEA_REPORT.md` with a robotics-specific structure so it stays compatible with downstream workflows.
+Write or update `01_IDEA_REPORT.md` with a robotics-specific structure so it stays compatible with downstream workflows (fallback readers may still consume `IDEA_REPORT.md`).
 
 ```markdown
 # Robotics Idea Discovery Report
@@ -352,4 +354,3 @@ implement sim-first pilot
 ```
 
 If no simulator or benchmark is available yet, stop at the report and ask the user to choose whether to build infrastructure or pivot to a more executable idea.
-

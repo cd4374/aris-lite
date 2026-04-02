@@ -1,6 +1,6 @@
 # Narrative Report: Attention Sparsity Patterns in Long-Context Transformers
 
-> **This is a sample NARRATIVE_REPORT.md for demonstrating `/aris-4-7-paper-writing` (Workflow 3).** It shows the structure and level of detail that produces the best results. Replace this content with your own research.
+> **This is a sample `04_NARRATIVE_REPORT.md` for demonstrating `/aris-4-7-paper-writing` (Workflow 3).** It shows the structure and level of detail that produces the best results. Replace this content with your own research.
 
 ## Core Story
 

@@ -20,22 +20,25 @@ project/
 ├── EXPERIMENT_LOG.md                  # Complete record of all experiments run
 ├── docs/
 │   └── research_contract.md           # Focused context for the active idea
-├── refine-logs/
-│   ├── EXPERIMENT_PLAN.md             # Experiment design (claims + blocks)
-│   └── EXPERIMENT_TRACKER.md          # Execution checklist (TODO → DONE)
-├── AUTO_REVIEW.md                     # Review loop log (from /aris-3-1-auto-review-loop)
+├── 01_IDEA_REPORT.md                  # Canonical ranked idea report
+├── 01_FINAL_PROPOSAL.md               # Canonical refined method proposal
+├── 02_EXPERIMENT_PLAN.md              # Canonical experiment design (claims + blocks)
+├── 02_EXPERIMENT_TRACKER.md           # Canonical execution checklist (TODO → DONE)
+├── 03_AUTO_REVIEW.md                  # Canonical review loop log
 ├── REVIEW_STATE.json                  # Review loop recovery state
-└── IDEA_REPORT.md                     # Raw brainstorm output (from /aris-1-4-idea-creator)
+└── 04_NARRATIVE_REPORT.md             # Canonical narrative handoff into paper writing
 ```
 
-### Existing ARIS Files (unchanged)
+### Canonical ARIS Files
 
 | File | Created by | Purpose |
 |------|-----------|---------|
-| `IDEA_REPORT.md` | `/aris-1-4-idea-creator` | Raw brainstorm output: all 8-12 ideas + pilot results + eliminated ideas |
-| `refine-logs/EXPERIMENT_PLAN.md` | `/aris-1-8-experiment-plan` | Experiment design: claim map, blocks, run order, compute budget |
-| `refine-logs/EXPERIMENT_TRACKER.md` | `/aris-1-8-experiment-plan` | Execution checklist: run ID, status (TODO→DONE), one-line notes |
-| `AUTO_REVIEW.md` | `/aris-3-1-auto-review-loop` | Cumulative review log: scores, reviewer responses, actions taken |
+| `01_IDEA_REPORT.md` | `/aris-0-2-idea-discovery` | Canonical ranked idea report with pilot results and eliminations |
+| `01_FINAL_PROPOSAL.md` | `/aris-1-7-research-refine` | Canonical refined method proposal |
+| `02_EXPERIMENT_PLAN.md` | `/aris-1-8-experiment-plan` | Canonical experiment design: claim map, blocks, run order, compute budget |
+| `02_EXPERIMENT_TRACKER.md` | `/aris-1-8-experiment-plan` | Canonical execution checklist: run ID, status (TODO→DONE), one-line notes |
+| `03_AUTO_REVIEW.md` | `/aris-3-1-auto-review-loop` | Canonical cumulative review log: scores, reviewer responses, actions taken |
+| `04_NARRATIVE_REPORT.md` | `/aris-3-1-auto-review-loop` | Canonical narrative handoff into paper writing |
 | `REVIEW_STATE.json` | `/aris-3-1-auto-review-loop` | Recovery state for context compaction |
 
 ### New Files (this guide)
@@ -52,7 +55,7 @@ project/
 ### Idea Flow
 
 ```
-IDEA_REPORT.md                    (12 ideas, raw brainstorm)
+01_IDEA_REPORT.md                 (canonical ranked ideas + pilot notes)
   ↓ novelty-check + review
 IDEA_CANDIDATES.md                (3-5 viable ideas, scored)
   ↓ select one
@@ -66,9 +69,9 @@ IDEA_CANDIDATES.md → pick next → update contract
 ### Experiment Flow
 
 ```
-EXPERIMENT_PLAN.md                (what to run — design)
+02_EXPERIMENT_PLAN.md             (what to run — design)
   ↓
-EXPERIMENT_TRACKER.md             (execution status — TODO/RUNNING/DONE)
+02_EXPERIMENT_TRACKER.md          (execution status — TODO/RUNNING/DONE)
   ↓ experiment completes
 EXPERIMENT_LOG.md                 (what happened — full results + reproduction)
   ↓ discover something unexpected
@@ -95,17 +98,17 @@ On new session or post-compaction, read files in this order:
 3. `findings.md` recent entries (what did I discover recently?)
 4. `EXPERIMENT_LOG.md` (if needed: what experiments have been run?)
 
-Do NOT read `IDEA_REPORT.md` or `IDEA_CANDIDATES.md` unless switching ideas.
+Do NOT read `01_IDEA_REPORT.md` or `IDEA_CANDIDATES.md` unless switching ideas.
 
 ## Separation Principles
 
 | Question | Answer |
 |----------|--------|
-| Where does a brainstorm idea go? | `IDEA_REPORT.md` (raw) → `IDEA_CANDIDATES.md` (curated) |
+| Where does a brainstorm idea go? | `01_IDEA_REPORT.md` (canonical) → `IDEA_CANDIDATES.md` (curated) |
 | Where does the current idea's full context go? | `docs/research_contract.md` |
-| Where does "experiment X is running" go? | `EXPERIMENT_TRACKER.md` |
+| Where does "experiment X is running" go? | `02_EXPERIMENT_TRACKER.md` |
 | Where does "experiment X got accuracy 95.2" go? | `EXPERIMENT_LOG.md` |
 | Where does "lr=1e-4 diverges on dataset-X" go? | `findings.md` |
-| Where does "reviewer says add ablation" go? | `AUTO_REVIEW.md` |
+| Where does "reviewer says add ablation" go? | `03_AUTO_REVIEW.md` |
 | Where does "chose approach A over B because Z" go? | `findings.md` |
 | Where does "current stage is training" go? | `CLAUDE.md` Pipeline Status |

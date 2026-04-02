@@ -1,6 +1,8 @@
 ---
 name: aris-3-5-auto-review-loop-minimax
-description: "Autonomous multi-round research review loop using MiniMax API. Use when you want to use MiniMax instead of Codex MCP for external review. Trigger with \"auto review loop minimax\" or \"minimax review\"."
+description: Autonomous multi-round research review loop using MiniMax API. Use when you want to use MiniMax instead of Codex MCP for external review. Trigger with "auto review loop minimax" or "minimax review".
+argument-hint: [topic-or-scope]
+allowed-tools: Bash(*), Read, Grep, Glob, Write, Edit, Agent, Skill
 ---
 
 # Auto Review Loop (MiniMax Version): Autonomous Research Improvement
@@ -13,7 +15,7 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 
 - MAX_ROUNDS = 4
 - POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
-- REVIEW_DOC: `AUTO_REVIEW.md` in project root (cumulative log)
+- REVIEW_DOC: `03_03_AUTO_REVIEW.md` in project root (cumulative log; fallback readers may still consume `03_AUTO_REVIEW.md`)
 - REVIEWER_MODEL = `MiniMax-M2.7` — Model used via MiniMax API
 
 ## API Configuration
@@ -26,7 +28,7 @@ If `mcp__minimax-chat__minimax_chat` is available, use it:
 
 ```
 mcp__minimax-chat__minimax_chat:
-  message: |
+  prompt: |
     [Review prompt content]
   model: "MiniMax-M2.7"
   system: "You are a senior machine learning researcher..."
@@ -50,9 +52,9 @@ curl -s "https://api.minimax.io/v1/chat/completions" \
   }'
 ```
 
-**API Key**: Read from `~/.codex/settings.json` under `env.MINIMAX_API_KEY`, or from environment variable.
+**API Key**: Read from `~/.claude/settings.json` under `env.MINIMAX_API_KEY`, or from environment variable.
 
-**Why MiniMax instead of a secondary Codex agent?** Codex CLI uses OpenAI's Responses API (`/v1/responses`) which is not supported by third-party providers. See: https://github.com/openai/codex/discussions/7782
+**Why MiniMax instead of Codex MCP?** Codex CLI uses OpenAI's Responses API (`/v1/responses`) which is not supported by third-party providers. See: https://github.com/openai/codex/discussions/7782
 
 ## State Persistence (Compact Recovery)
 
@@ -83,7 +85,7 @@ Long-running loops may hit the context window limit, triggering automatic compac
    - If it exists AND `status` is `"in_progress"` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
    - If it exists AND `status` is `"in_progress"` AND `timestamp` is within 24 hours: **resume**
      - Read the state file to recover `round`, `last_score`, `pending_experiments`
-     - Read `AUTO_REVIEW.md` to restore full context of prior rounds
+     - Read `03_03_AUTO_REVIEW.md` first (fallback: `03_AUTO_REVIEW.md`) to restore full context of prior rounds
      - If `pending_experiments` is non-empty, check if they have completed (e.g., check screen sessions)
      - Resume from the next round (round = saved round + 1)
      - Log: "Recovered from context compaction. Resuming at Round N."
@@ -91,7 +93,7 @@ Long-running loops may hit the context window limit, triggering automatic compac
 3. Read recent experiment results (check output directories, logs)
 4. Identify current weaknesses and open TODOs from prior reviews
 5. Initialize round counter = 1 (unless recovered from state file)
-6. Create/update `AUTO_REVIEW.md` with header and timestamp
+6. Create/update `03_AUTO_REVIEW.md` with header and timestamp
 
 ### Loop (repeat up to MAX_ROUNDS)
 
@@ -166,7 +168,7 @@ If experiments were launched:
 
 #### Phase E: Document Round
 
-Append to `AUTO_REVIEW.md`:
+Append to `03_AUTO_REVIEW.md`:
 
 ```markdown
 ## Round N (timestamp)
@@ -205,7 +207,7 @@ Increment round counter → back to Phase A.
 When loop ends (positive assessment or max rounds):
 
 1. Update `REVIEW_STATE.json` with `"status": "completed"`
-2. Write final summary to `AUTO_REVIEW.md`
+2. Write final summary to `03_AUTO_REVIEW.md`
 3. Update project notes with conclusions
 4. If stopped at max rounds without positive assessment:
    - List remaining blockers
@@ -216,6 +218,7 @@ When loop ends (positive assessment or max rounds):
 
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
+- **Anti-hallucination citations**: When adding references, NEVER fabricate BibTeX. Use DBLP → CrossRef → `[VERIFY]` chain. Do NOT generate BibTeX from memory.
 - Be honest — include negative results and failed experiments
 - Do NOT hide weaknesses to game a positive score
 - Implement fixes BEFORE re-reviewing (don't just promise to fix)
@@ -232,7 +235,7 @@ When loop ends (positive assessment or max rounds):
 mcp__minimax-chat__minimax_chat:
   model: "MiniMax-M2.7"
   system: "You are a senior machine learning researcher serving as a reviewer for top-tier conferences like NeurIPS, ICML, and ICLR. Provide rigorous, constructive feedback."
-  message: |
+  prompt: |
     [Round N/MAX_ROUNDS of autonomous review loop]
 
     ## Previous Review Summary (Round N-1)
@@ -280,4 +283,3 @@ curl -s "https://api.minimax.io/v1/chat/completions" \
     "max_tokens": 4096
   }'
 ```
-
