@@ -53,7 +53,7 @@ Antigravity supports multiple models as the **executor** (the model that runs AR
 
 ```bash
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 
 # Option A: Global install (available across all projects)
 mkdir -p ~/.gemini/antigravity/skills
@@ -108,7 +108,7 @@ If you don't have an OpenAI API key, use the [`llm-chat`](../mcp-servers/llm-cha
 
 1. Create a virtual environment and install the required dependency:
    ```bash
-   cd /path/to/Auto-claude-code-research-in-sleep
+   cd /path/to/aris-lite
    python3 -m venv .venv
    .venv/bin/pip install -r mcp-servers/llm-chat/requirements.txt
    ```
@@ -118,8 +118,8 @@ If you don't have an OpenAI API key, use the [`llm-chat`](../mcp-servers/llm-cha
    {
      "mcpServers": {
        "llm-chat": {
-         "command": "/path/to/Auto-claude-code-research-in-sleep/.venv/bin/python3",
-         "args": ["/path/to/Auto-claude-code-research-in-sleep/mcp-servers/llm-chat/server.py"],
+         "command": "/path/to/aris-lite/.venv/bin/python3",
+         "args": ["/path/to/aris-lite/mcp-servers/llm-chat/server.py"],
          "env": {
            "LLM_BASE_URL": "https://api.deepseek.com/v1",
            "LLM_API_KEY": "your_key",

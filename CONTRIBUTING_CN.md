@@ -1,4 +1,4 @@
-# 为 Auto-claude-code-research-in-sleep (ARIS) 做贡献
+# 为 aris-lite (ARIS) 做贡献
 
 [English](CONTRIBUTING.md) | 中文版
 
@@ -17,8 +17,8 @@
 1. Fork 本仓库
 2. 克隆你的 Fork：
    ```bash
-   git clone https://github.com/你的用户名/Auto-claude-code-research-in-sleep.git
-   cd Auto-claude-code-research-in-sleep
+   git clone https://github.com/你的用户名/aris-lite.git
+   cd aris-lite
    ```
 3. 为你的更改创建分支：
    ```bash

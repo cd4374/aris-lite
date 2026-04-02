@@ -38,12 +38,12 @@ git clone https://github.com/cd4374/aris-lite.git
 # 全局安装（所有项目可用）
 $globalSkillsDir = Join-Path $env:USERPROFILE ".trae\skills"
 New-Item -ItemType Directory -Path $globalSkillsDir -Force | Out-Null
-Copy-Item -Path ".\Auto-claude-code-research-in-sleep\skills\*" -Destination $globalSkillsDir -Recurse -Force
+Copy-Item -Path ".\aris-lite\skills\*" -Destination $globalSkillsDir -Recurse -Force
 
 # 项目级安装（仅当前项目可用）
 $projectSkillsDir = ".\.trae\skills"
 New-Item -ItemType Directory -Path $projectSkillsDir -Force | Out-Null
-Copy-Item -Path ".\Auto-claude-code-research-in-sleep\skills\*" -Destination $projectSkillsDir -Recurse -Force
+Copy-Item -Path ".\aris-lite\skills\*" -Destination $projectSkillsDir -Recurse -Force
 ```
 
 安装完成后，在对应范围内直接用自然语言描述需求即可触发相应技能。
@@ -89,7 +89,7 @@ codex login
 1) 建虚拟环境并安装依赖
 
 ```powershell
-cd D:\path\to\Auto-claude-code-research-in-sleep
+cd D:\path\to\aris-lite
 python -m venv .venv
 .\.venv\Scripts\pip install -r mcp-servers\llm-chat\requirements.txt
 ```
@@ -100,8 +100,8 @@ python -m venv .venv
 {
   "mcpServers": {
     "llm-chat": {
-      "command": "/path/to/Auto-claude-code-research-in-sleep/.venv/Scripts/python.exe",
-      "args": ["/path/to/Auto-claude-code-research-in-sleep/mcp-servers/llm-chat/server.py"],
+      "command": "/path/to/aris-lite/.venv/Scripts/python.exe",
+      "args": ["/path/to/aris-lite/mcp-servers/llm-chat/server.py"],
       "env": {
         "LLM_BASE_URL": "https://api.deepseek.com/v1",
         "LLM_API_KEY": "your_key",

@@ -9,7 +9,7 @@
 ```bash
 # 1. 克隆仓库
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 
 # 2. 安装 skills 到 Claude Code
 cp -r skills/* ~/.claude/skills/
@@ -252,7 +252,7 @@ latexmk --version && pdfinfo -v
 
 ```bash
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 
 # 安装全部 skills
 cp -r skills/* ~/.claude/skills/
@@ -265,7 +265,7 @@ cp -r skills/aris-1-1-research-lit ~/.claude/skills/
 ### 更新 Skills
 
 ```bash
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 git pull
 
 # 全量更新

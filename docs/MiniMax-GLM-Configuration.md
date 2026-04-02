@@ -26,7 +26,7 @@ npm install -g @anthropic-ai/claude-code
 
 ```bash
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep/mcp-servers/llm-chat
+cd aris-lite/mcp-servers/llm-chat
 pip install -r requirements.txt
 cd ../..
 ```
@@ -186,10 +186,10 @@ claude
 
 ## 参考
 
-- [Auto-claude-code-research-in-sleep 主项目](https://github.com/cd4374/aris-lite)
+- [aris-lite 主项目](https://github.com/cd4374/aris-lite)
 - [方案 A：GLM + GPT](./README.md#alt-a-glm--gpt)
 - [方案 B：GLM + MiniMax](./README.md#alt-b-glm--minimax)
 
 ---
 
-*此配置方案由社区贡献，适用于 Auto-claude-code-research-in-sleep 项目*
+*此配置方案由社区贡献，适用于 aris-lite 项目*

@@ -1,4 +1,4 @@
-# Contributing to Auto-claude-code-research-in-sleep (ARIS)
+# Contributing to aris-lite (ARIS)
 
 [English](CONTRIBUTING.md) | [中文版](CONTRIBUTING_CN.md)
 
@@ -17,8 +17,8 @@ Thank you for your interest in contributing to ARIS! This document provides guid
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/Auto-claude-code-research-in-sleep.git
-   cd Auto-claude-code-research-in-sleep
+   git clone https://github.com/YOUR_USERNAME/aris-lite.git
+   cd aris-lite
    ```
 3. Create a branch for your changes:
    ```bash

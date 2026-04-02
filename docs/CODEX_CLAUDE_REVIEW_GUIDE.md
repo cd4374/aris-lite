@@ -24,7 +24,7 @@ The install order matters:
 
 ```bash
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 
 mkdir -p ~/.codex/skills
 cp -a skills/skills-codex/* ~/.codex/skills/

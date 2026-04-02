@@ -87,7 +87,7 @@ Coding Plan 提供两套 API 端点，分别对应 ARIS 的两个角色：
 
 ```bash
 git clone https://github.com/cd4374/aris-lite.git
-cd Auto-claude-code-research-in-sleep
+cd aris-lite
 ```
 
 ### Step 2：安装 Python 依赖

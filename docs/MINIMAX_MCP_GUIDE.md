@@ -1,6 +1,6 @@
 # MiniMax MCP 集成指南
 
-本文档说明如何在 Auto-claude-code-research-in-sleep 项目中使用 MiniMax API 替代 OpenAI Codex MCP 进行研究审查。
+本文档说明如何在 aris-lite 项目中使用 MiniMax API 替代 OpenAI Codex MCP 进行研究审查。
 
 ## 背景
 
