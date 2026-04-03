@@ -12,7 +12,7 @@ Generate a structured, section-by-section paper outline from: **$ARGUMENTS**
 ## Constants
 
 - **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for outline review. Must be an OpenAI model.
-- **TARGET_VENUE = `ICLR`** — Default venue. User can override (e.g., `/aris-4-1-paper-plan "topic" — venue: NeurIPS`). Supported: `ICLR`, `NeurIPS`, `ICML`, `CVPR`, `ACL`, `AAAI`, `ACM`, `IEEE_JOURNAL` (IEEE Transactions / Letters), `IEEE_CONF` (IEEE conferences).
+- **TARGET_VENUE = `ICLR`** — Default venue. User can override (e.g., `/aris-4-1-paper-plan "topic" — venue: NeurIPS`). Supported: `ICLR`, `NeurIPS`, `ICML`, `CVPR`, `ACL`, `AAAI`, `ACM`, `IEEE_JOURNAL` (IEEE Transactions / Letters), `IEEE_CONF` (IEEE conferences), `PRL`, `PRA`, `PRB`, `PRE`, `PRX` (APS Physical Review family).
 - **MAX_PAGES** — Page limit. For ML conferences: main body to Conclusion end (excluding references, appendix). ICLR=9, NeurIPS=9, ICML=8. **For IEEE venues: references ARE included in page count.** IEEE journal Transactions ≈ 12-14 pages total, Letters ≈ 4-5 pages total; IEEE conference ≈ 5-8 pages total (including references).
 
 ## Inputs
@@ -31,8 +31,8 @@ If none exist, ask the user to describe the paper's contribution in 3-5 sentence
 
 Keep the existing `insleep` workflow and outputs, but use the shared references below to improve the quality of the story and outline.
 
-- Read `../shared-references/writing-principles.md` when framing the one-sentence contribution, Abstract, Introduction, Related Work, or hero figure.
-- Read `../shared-references/venue-checklists.md` before freezing the outline for a specific venue.
+- Read `../aris-common-references/writing-principles.md` when framing the one-sentence contribution, Abstract, Introduction, Related Work, or hero figure.
+- Read `../aris-common-references/venue-checklists.md` before freezing the outline for a specific venue.
 - Only load these references when needed; do not paste their full contents into the working draft.
 
 ## Workflow
@@ -54,17 +54,17 @@ Read all available narrative documents and extract:
 Build a **Claims-Evidence Matrix**:
 
 ```markdown
-| Claim | Evidence | Status | Section |
-|-------|----------|--------|---------|
-| [claim 1] | [exp A, metric B] | Supported | §3.2 |
-| [claim 2] | [exp C] | Partially supported | §4.1 |
+| Claim ID | Claim Type | Strongest Safe Claim | Main Evidence | Remaining Gap | Status | Section |
+|----------|------------|----------------------|---------------|---------------|--------|---------|
+| C1 | mechanism | [safe wording] | [exp A, metric B] | [gap] | Supported | §3.2 |
+| C2 | empirical | [safe wording] | [exp C] | [gap] | Partially supported | §4.1 |
 ```
 
 ### Step 2: Determine Paper Type and Structure
 
 Based on TARGET_VENUE and paper content, classify and select structure.
 
-Before committing to a structure, apply the narrative principle from `../shared-references/writing-principles.md`:
+Before committing to a structure, apply the narrative principle from `../aris-common-references/writing-principles.md`:
 
 - The paper should tell one coherent technical story.
 - By the end of the Introduction, the outline should make the **What**, **Why**, and **So What** explicit.
@@ -226,6 +226,11 @@ mcp__codex__codex:
     6. Front-matter strength — are the abstract, introduction, and hero figure plan strong enough for skim-reading reviewers?
 
     For each weakness, suggest the MINIMUM fix.
+    Also identify:
+    - unsupported narrative jumps
+    - overclaim risks
+    - skim-reader failure points
+    - minimum structural fixes
     Be specific and actionable — "add X" not "consider more experiments".
 ```
 
@@ -262,6 +267,12 @@ Save the final outline to `05_PAPER_PLAN.md` in the project root (fallback reade
 ## Citation Plan
 [from Step 5]
 
+## Paper Quality Preflight
+- Strongest safe claim:
+- Likely overclaim risks:
+- Must-fix evidence gaps before drafting:
+- Abstract / introduction risk notes:
+
 ## Reviewer Feedback
 [from Step 6, summarized]
 
@@ -277,7 +288,7 @@ Save the final outline to `05_PAPER_PLAN.md` in the project root (fallback reade
 - **Be honest about evidence gaps** — mark claims as "needs experiment" rather than overclaiming
 - **Page budget is hard** — if content exceeds MAX_PAGES, suggest what to move to appendix
 - **MAX_PAGES counting differs by venue** — ML conferences: main body to Conclusion end, references/appendix NOT counted. **IEEE venues: references ARE counted toward the page limit.**
-- **Venue-specific norms** — ML conferences (ICLR/NeurIPS/ICML) use `natbib` (`\citep`/`\citet`); **IEEE venues use `cite` package (`\cite{}`, numeric style)**
+- **Venue-specific norms** — ML conferences (ICLR/NeurIPS/ICML) use `natbib` (`\citep`/`\citet`); **IEEE/APS venues use numeric `\cite{}` style** (`cite` package for IEEE, REVTeX conventions for APS)
 - **Claims-Evidence Matrix is the backbone** — every claim must map to evidence, every experiment must support a claim
 - **Front-load the story** — the outline should make the contribution clear in the title, abstract, introduction, and hero figure before the reader reaches the full method
 - **Figures need detailed descriptions** — especially the hero figure, which must clearly specify comparisons and visual expectations

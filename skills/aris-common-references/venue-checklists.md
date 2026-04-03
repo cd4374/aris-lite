@@ -1,4 +1,4 @@
-# Venue Checklists for ICLR, NeurIPS, ICML, and IEEE
+# Venue Checklists for ICLR, NeurIPS, ICML, IEEE, and APS PR Family
 
 Use this reference near the end of `aris-4-1-paper-plan` and during the final checks in `aris-4-4-paper-write`.
 
@@ -12,11 +12,11 @@ Use this reference near the end of `aris-4-1-paper-plan` and during the final ch
 
 Across these venues, the following are usually expected:
 
-- anonymous submission unless preparing a camera-ready version,
-- references and appendices outside the main page budget,
 - enough experimental detail for reproduction,
 - honest limitations and scope boundaries,
-- clear mapping from claims to evidence.
+- clear mapping from claims to evidence,
+- venue-appropriate page budgeting (ML main-body caps vs IEEE/APS journal-style expectations),
+- strong claim-to-evidence closure and reproducibility transparency before declaring ready-to-submit.
 
 ## NeurIPS
 
@@ -103,6 +103,22 @@ Final-check implications:
 - Confirm the correct `\documentclass` option (`[conference]`, not `[journal]`).
 - Some conferences require IEEE copyright notice — check submission portal for specific requirements.
 
+## APS PR Family (PRL / PRA / PRB / PRE / PRX)
+
+Planning implications:
+
+- APS journals are typically non-anonymous at submission; set author block accordingly.
+- Use REVTeX (`revtex4-2`) templates and keep citation style consistent (`\\cite{}` numeric style).
+- Keep claims conservative and tightly mapped to evidence; PR venues penalize overclaiming heavily.
+- Reproducibility details should include exact commands, config provenance, and artifact IDs.
+
+Final-check implications:
+
+- Confirm venue-template alignment: PRL uses PRL template, PRX uses PRX template, PRA/PRB/PRE use corresponding family template.
+- Verify no natbib-only citation commands are mixed into APS drafts.
+- Ensure strongest-safe-claim consistency across abstract/introduction/conclusion and claims artifacts.
+- Ensure reproducibility/authenticity artifact (`07_REPRODUCIBILITY_AND_AUTHENTICITY.md`) is complete.
+
 ## Minimal Submission Checklist
 
 Before submission, verify:
@@ -111,4 +127,4 @@ Before submission, verify:
 - the page budget is satisfied for the main body,
 - the contribution bullets do not overclaim,
 - citations, figures, tables, and references are internally consistent,
-- the PDF is anonymized and ready for reviewer consumption.
+- the package is quality-ready: strongest claims are evidence-backed, reproducibility details are complete, and major review issues are closed.

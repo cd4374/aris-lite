@@ -7,13 +7,13 @@
 - 保留主线科研技能的同名同步集
 - 同步包含 `training-check`、`ablation-planner`、`result-to-claim`、`rebuttal`
 - 同步包含 `mermaid-diagram`
-- 附带 `shared-references/`，但它**不计入 skill 数量**
+- 附带 `aris-common-references/`，但它**不计入 skill 数量**
 
 数量对比：
 
 - 主线 `skills/` 当前技能数：`39`
 - 本包技能数：`39`
-- 另附支持目录：`shared-references/`
+- 另附支持目录：`aris-common-references/`
 
 本包路径结构是：
 
@@ -22,7 +22,7 @@ skills/skills-codex/
   <skill-name>/
     SKILL.md
     ...
-  shared-references/
+  aris-common-references/
     ...
 ```
 
@@ -54,13 +54,13 @@ skills/skills-codex/
 
 - `paper-write`
 - `comm-lit-review`
-- `shared-references`
+- `aris-common-references`
 
 原因：
 
 - `paper-write` 依赖 `templates/`
 - `comm-lit-review` 依赖 `references/`
-- `paper-plan` / `paper-write` 会引用 `shared-references/`
+- `paper-plan` / `paper-write` 会引用 `aris-common-references/`
 
 ## 3. 如何安装
 

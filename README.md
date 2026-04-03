@@ -286,6 +286,39 @@ cp -rn skills/* ~/.claude/skills/
 cp -r skills/aris-0-3-experiment-bridge ~/.claude/skills/
 ```
 
+### 维护者：生成覆盖层（SSOT）
+
+`skills/skills-codex-claude-review/` 与 `skills/skills-codex-gemini-review/` 是 generated artifacts。
+
+```bash
+# 重新生成
+python3 tools/generate_skill_variants.py --variant codex-claude-review --variant codex-gemini-review --write
+
+# 漂移检查（CI 同款）
+python3 tools/generate_skill_variants.py --check
+```
+
+### 维护者：base vs codex 漂移报告
+
+用于跟踪 `skills/` 与 `skills/skills-codex/` 的差异（第二阶段，信息化治理）：
+
+```bash
+# 汇总报告
+python3 tools/skill_variant_drift_report.py
+
+# 导出 JSON + Markdown + 优先级报告
+python3 tools/skill_variant_drift_report.py \
+  --json-out artifacts/skill_drift_report.json \
+  --markdown-out artifacts/skill_drift_report.md \
+  --priority-out artifacts/skill_drift_priority.md
+
+# 仅检查未 allowlist 的漂移（可作为后续强校验）
+python3 tools/skill_variant_drift_report.py --check
+```
+
+allowlist 文件：`tools/skill_variant_drift_allowlist.json`。
+治理策略：`docs/SKILL_DRIFT_POLICY.md`。
+
 ### 免确认配置（可选）
 
 在 `.claude/settings.local.json` 中添加：
@@ -298,7 +331,7 @@ cp -r skills/aris-0-3-experiment-bridge ~/.claude/skills/
       "mcp__codex__codex-reply",
       "Write",
       "Edit",
-      "Skill(auto-review-loop)"
+      "Skill(aris-3-1-auto-review-loop)"
     ]
   }
 }

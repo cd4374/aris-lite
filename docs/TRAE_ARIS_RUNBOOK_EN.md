@@ -143,7 +143,7 @@ This is the most natural way—just describe what you want to do, and Trae will 
 Type `#` in the chat to quickly search and invoke skills. After typing `#`, you'll see a skill list:
 
 ```
-#auto-review-loop
+#aris-3-1-auto-review-loop
 ```
 
 ### C. `@` Reference SKILL.md File
@@ -180,11 +180,11 @@ Trae automatically discovers ARIS skills via the YAML `description` field in `SK
 Run the full idea discovery pipeline for "your research direction".
 
 Use the following sub-skills in order:
-1. Use research-lit skill — Literature review
-2. Use idea-creator skill — Brainstorming
-3. Use novelty-check skill — Novelty verification
-4. Use research-review skill — Deep review
-5. Use research-refine-pipeline skill — Method refinement + Experiment planning
+1. Use aris-1-1-research-lit skill — Literature review
+2. Use aris-1-4-idea-creator skill — Brainstorming
+3. Use aris-1-5-novelty-check skill — Novelty verification
+4. Use aris-1-6-research-review skill — Deep review
+5. Use aris-1-9-research-refine-pipeline skill — Method refinement + Experiment planning
 ```
 
 > **Tip:** If context is too long, split each stage into separate conversations and pass results via files (e.g., `01_IDEA_REPORT.md`, `01_FINAL_PROPOSAL.md`).
@@ -198,9 +198,9 @@ Use the following sub-skills in order:
 
 **Trae equivalent:**
 ```
-Use experiment-bridge skill.
+Use aris-0-3-experiment-bridge skill.
 Read 02_EXPERIMENT_PLAN.md (fallback: `refine-logs/EXPERIMENT_PLAN.md`) and implement experiments.
-Use run-experiment skill to deploy to GPU.
+Use aris-2-1-run-experiment skill to deploy to GPU.
 ```
 
 ### Workflow 2: Auto Review Loop
@@ -212,7 +212,7 @@ Use run-experiment skill to deploy to GPU.
 
 **Trae equivalent:**
 ```
-Use auto-review-loop skill.
+Use aris-3-1-auto-review-loop skill.
 Run auto review loop for "your paper topic".
 Read project narrative docs, memory files, and experiment results.
 Use MCP tool mcp__codex__codex for external review.
@@ -229,15 +229,15 @@ Use MCP tool mcp__codex__codex for external review.
 
 **Trae equivalent:**
 ```
-Use paper-writing skill.
+Use aris-4-7-paper-writing skill.
 Input: 04_NARRATIVE_REPORT.md in project root (fallback: `NARRATIVE_REPORT.md`).
 
 Use the following sub-skills in order:
-1. Use paper-plan skill — Outline + claims-evidence matrix
-2. Use paper-figure skill — Generate figures
-3. Use paper-write skill — Write LaTeX sections
-4. Use paper-compile skill — Compile PDF
-5. Use auto-paper-improvement-loop skill — Review and polish
+1. Use aris-4-1-paper-plan skill — Outline + claims-evidence matrix
+2. Use aris-4-2-paper-figure skill — Generate figures
+3. Use aris-4-4-paper-write skill — Write LaTeX sections
+4. Use aris-4-5-paper-compile skill — Compile PDF
+5. Use aris-4-6-auto-paper-improvement-loop skill — Review and polish
 ```
 
 ### Full Pipeline Staging
@@ -301,22 +301,22 @@ Deploy: python train.py --lr 1e-4 --epochs 100
 
 ```
 # Literature review
-Use research-lit skill to search papers on "discrete diffusion models".
+Use aris-1-1-research-lit skill to search papers on "discrete diffusion models".
 
 # Idea Discovery (full pipeline)
-Use idea-discovery skill for "factorized gap in discrete diffusion LMs".
+Use aris-0-2-idea-discovery skill for "factorized gap in discrete diffusion LMs".
 
 # Single deep review
-Use research-review skill to review my research: [description or file reference].
+Use aris-1-6-research-review skill to review my research: [description or file reference].
 
 # Auto review loop
-Use auto-review-loop skill. Topic: "your paper topic".
+Use aris-3-1-auto-review-loop skill. Topic: "your paper topic".
 
 # Paper writing
-Use paper-writing skill based on 04_NARRATIVE_REPORT.md.
+Use aris-4-7-paper-writing skill based on 04_NARRATIVE_REPORT.md.
 
 # Deploy experiment
-Use run-experiment skill. Deploy: python train.py --lr 1e-4 --epochs 100
+Use aris-2-1-run-experiment skill. Deploy: python train.py --lr 1e-4 --epochs 100
 ```
 
 ## 10. Migration Checklist: Claude Code → Trae
@@ -326,4 +326,4 @@ Use run-experiment skill. Deploy: python train.py --lr 1e-4 --epochs 100
 - [ ] Configure MCP server in `Settings → MCP`
 - [ ] Use natural language to describe needs and trigger skills
 - [ ] Verify MCP tools are available (codex or llm-chat)
-- [ ] Quick test: `Use research-review skill to review my project`
+- [ ] Quick test: `Use aris-1-6-research-review skill to review my project`
