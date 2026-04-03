@@ -2,6 +2,9 @@
 
 This package is a **thin override layer** for users who want:
 
+> Generated artifact: regenerate from `tools/generate_skill_variants.py` (variant `codex-gemini-review`), do not hand-edit.
+
+
 - **Codex** as the main executor
 - **Gemini** as the reviewer
 - the local `gemini-review` MCP bridge instead of a second Codex reviewer

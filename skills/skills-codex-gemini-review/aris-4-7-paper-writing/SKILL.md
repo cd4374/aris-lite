@@ -15,7 +15,7 @@ This skill chains five sub-skills into a single automated pipeline:
 
 ```
 /aris-4-1-paper-plan → /aris-4-2-paper-figure → /aris-4-4-paper-write → /aris-4-5-paper-compile → /aris-4-6-auto-paper-improvement-loop
-  (outline)     (plots)        (LaTeX)        (build PDF)       (review & polish ×2)
+  (outline)     (plots)        (LaTeX)        (build PDF)       (review & polish up to ×3)
 ```
 
 Each phase builds on the previous one's output. The final deliverable is a polished, reviewed `paper/` directory with LaTeX source and compiled PDF.
@@ -24,8 +24,9 @@ In this hybrid pack, the pipeline itself is unchanged, but `aris-4-1-paper-plan`
 
 ## Constants
 
-- **VENUE = `ICLR`** — Target venue. Options: `ICLR`, `NeurIPS`, `ICML`, `CVPR`, `ACL`, `AAAI`, `ACM`, `IEEE_JOURNAL` (IEEE Transactions / Letters), `IEEE_CONF` (IEEE conferences). Affects style file, page limit, citation format.
-- **MAX_IMPROVEMENT_ROUNDS = 2** — Number of review→fix→recompile rounds in the improvement loop.
+- **VENUE = `ICLR`** — Target venue. Options: `ICLR`, `NeurIPS`, `ICML`, `CVPR`, `ACL`, `AAAI`, `ACM`, `IEEE_JOURNAL` (IEEE Transactions / Letters), `IEEE_CONF` (IEEE conferences), `PRL`, `PRA`, `PRB`, `PRE`, `PRX` (APS Physical Review family). Affects style file, page limit, citation format.
+- **MAX_IMPROVEMENT_ROUNDS = 3** — Maximum number of review→fix→recompile rounds in the improvement loop.
+- **MIN_FINAL_SCORE = 8.0** — Minimum final paper score target for high-quality readiness.
 - **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the local `gemini-review` MCP bridge. Set `GEMINI_REVIEW_MODEL` if you need a specific Gemini model override.
 - **AUTO_PROCEED = true** — Auto-continue between phases. Set `false` to pause and wait for user approval after each phase.
 - **HUMAN_CHECKPOINT = false** — When `true`, the improvement loop (Phase 5) pauses after each round's review to let you see the score and provide custom modification instructions. When `false` (default), the loop runs fully autonomously. Passed through to `/aris-4-6-auto-paper-improvement-loop`.
@@ -178,11 +179,22 @@ Invoke `/aris-4-6-auto-paper-improvement-loop` to polish the paper:
 /aris-4-6-auto-paper-improvement-loop "paper/"
 ```
 
-**What this does (2 rounds):**
+**Loop contract (up to 3 rounds):**
 
-**Round 1:** Gemini review reviews the full paper → identifies CRITICAL/MAJOR/MINOR issues → Claude Code implements fixes → recompile → save `main_round1.pdf`
+**Reviewer phase:** Gemini review reviews the full paper and outputs severity-ranked issues, unsupported claims, and required fixes, with strict emphasis on: (1) rigor, (2) technical correctness, (3) content richness/depth, (4) reproducibility.
 
-**Round 2:** Gemini review re-reviews with conversation context → identifies remaining issues → Claude Code implements fixes → recompile → save `main_round2.pdf`
+**Optimizer phase:** Claude Code updates manuscript + `PAPER_ISSUE_LEDGER.md`, applies prioritized fixes, recompiles, and records deltas.
+
+**Judge phase:** decide continue/stop from structured state and stop criteria (score threshold, explicit ready verdict, unresolved issue status, plateau/max-round guard).
+
+Round progression:
+- Round 1: baseline review → fix → recompile → `main_round1.pdf`
+- Round 2: re-review with prior context → fix → recompile → `main_round2.pdf`
+- Round 3 (if required): repeat once more → `main_round3.pdf`
+
+**Strict stop condition:** stop only when score >= `MIN_FINAL_SCORE`, verdict is explicitly `Yes` / `ready for submission`, and no unresolved `CRITICAL`/`MAJOR` issues remain in `PAPER_ISSUE_LEDGER.md`.
+
+**State outputs:** improvement loop writes `PAPER_IMPROVEMENT_STATE.json` (round status + stop reason) and `PAPER_IMPROVEMENT_LOG.md`.
 
 **Typical improvements:**
 - Fix assumption-model mismatches
@@ -191,7 +203,7 @@ Invoke `/aris-4-6-auto-paper-improvement-loop` to polish the paper:
 - Strengthen limitations section
 - Add theory-aligned experiments if needed
 
-**Output:** Three PDFs for comparison + `PAPER_IMPROVEMENT_LOG.md`.
+**Output:** Three PDFs for comparison + `PAPER_IMPROVEMENT_LOG.md` + `PAPER_ISSUE_LEDGER.md`.
 
 **Format check** (included in improvement loop Step 8): After final recompilation, auto-detect and fix overfull hboxes (content exceeding margins), verify page count vs venue limit, and ensure compact formatting. Any overfull > 10pt is fixed before generating the final PDF.
 
@@ -217,7 +229,7 @@ Invoke `/aris-4-8-submission-gate` to verify the package is actually ready to su
 # Paper Writing Pipeline Report
 
 **Input**: [`04_NARRATIVE_REPORT.md` or topic]
-**Venue**: [ICLR/NeurIPS/ICML/CVPR/ACL/AAAI/ACM/IEEE_JOURNAL/IEEE_CONF]
+**Venue**: [ICLR/NeurIPS/ICML/CVPR/ACL/AAAI/ACM/IEEE_JOURNAL/IEEE_CONF/PRL/PRA/PRB/PRE/PRX]
 **Date**: [today]
 
 ## Pipeline Summary
@@ -228,7 +240,7 @@ Invoke `/aris-4-8-submission-gate` to verify the package is actually ready to su
 | 2. Figures | ✅ | figures/ ([N] auto + [M] manual) |
 | 3. LaTeX Writing | ✅ | paper/sections/*.tex ([N] sections, [M] citations) |
 | 4. Compilation | ✅ | paper/main.pdf ([X] pages) |
-| 5. Improvement | ✅ | [score0]/10 → [score2]/10 |
+| 5. Improvement | ✅ | [score0]/10 → [score3]/10 (or earlier if strict stop met) |
 | 6. Submission Gate | ✅ | 06_SUBMISSION_GATE.md |
 
 ## Improvement Scores
@@ -237,13 +249,16 @@ Invoke `/aris-4-8-submission-gate` to verify the package is actually ready to su
 | Round 0 | X/10 | Baseline |
 | Round 1 | Y/10 | [summary] |
 | Round 2 | Z/10 | [summary] |
+| Round 3 | W/10 | [summary] |
 
 ## Deliverables
 - paper/main.pdf — Final polished paper
 - paper/main_round0_original.pdf — Before improvement
 - paper/main_round1.pdf — After round 1
 - paper/main_round2.pdf — After round 2
+- paper/main_round3.pdf — After round 3 (if required)
 - paper/PAPER_IMPROVEMENT_LOG.md — Full review log
+- paper/PAPER_ISSUE_LEDGER.md — Issue closure ledger
 - 06_SUBMISSION_GATE.md — Final submission-readiness verdict
 
 ## Remaining Issues (if any)
@@ -253,7 +268,7 @@ Invoke `/aris-4-8-submission-gate` to verify the package is actually ready to su
 - [ ] Visual inspection of PDF
 - [ ] Resolve any blocking items from `06_SUBMISSION_GATE.md`
 - [ ] Add any missing manual figures flagged in `05_FIGURE_MANIFEST.md`
-- [ ] Submit to [venue] via OpenReview / CMT / HotCRP
+- [ ] Submit to [venue] via OpenReview / CMT / HotCRP / APS submission system
 ```
 
 ## Key Rules
@@ -263,7 +278,7 @@ Invoke `/aris-4-8-submission-gate` to verify the package is actually ready to su
 - **Checkpoint between phases** when AUTO_PROCEED=false. Present results and wait for approval.
 - **Manual figures are tracked, not silently ignored.** If the paper needs architecture diagrams or qualitative results, record them in `05_FIGURE_MANIFEST.md`. Paper writing may proceed with placeholders, but `/aris-4-8-submission-gate` should block submission when high-priority manual figures remain incomplete.
 - **Compilation must succeed** before entering the improvement loop. Fix all errors first.
-- **Preserve all PDFs.** The user needs round0/round1/round2 for comparison.
+- **Preserve all PDFs.** The user needs round0/round1/round2/(round3 if required) for comparison.
 - **Document everything.** The pipeline report should be self-contained.
 - **Respect page limits.** If the paper exceeds the venue limit, suggest specific cuts before the improvement loop.
 - **Do not treat a compiled PDF as sufficient.** The pipeline is only truly done after `/aris-4-8-submission-gate` writes `06_SUBMISSION_GATE.md`.

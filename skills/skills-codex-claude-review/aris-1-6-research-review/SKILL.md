@@ -1,11 +1,11 @@
 ---
 name: "aris-1-6-research-review"
-description: "Get a deep critical review of research from Claude via claude-review MCP. Use when user says \"review my research\", \"help me review\", \"get external review\", or wants critical feedback on research ideas, papers, or experimental results."
+description: "Get a deep critical review of research from GPT via Codex MCP. Use when user says \"review my research\", \"help me review\", \"get external review\", or wants critical feedback on research ideas, papers, or experimental results."
 ---
 
 > Override for Codex users who want **Claude Code**, not a second Codex agent, to act as the reviewer. Install this package **after** `skills/skills-codex/*`.
 
-# Research Review via `claude-review` MCP (high-rigor review)
+# Research Review via Codex MCP (xhigh reasoning)
 
 Get a multi-round critical review of research work from an external LLM with maximum reasoning depth.
 
@@ -25,6 +25,10 @@ Get a multi-round critical review of research work from an external LLM with max
   ```
 - This gives Codex access to `mcp__claude-review__review_start`, `mcp__claude-review__review_reply_start`, and `mcp__claude-review__review_status`.
 
+  ```bash
+  claude mcp add codex -s user -- codex mcp-server
+  ```
+- This gives Claude Code access to `mcp__claude-review__review_start` and `mcp__claude-review__review_start-reply` tools
 
 ## Workflow
 
@@ -39,6 +43,7 @@ Send a detailed prompt with high-rigor review:
 
 ```
 mcp__claude-review__review_start:
+  config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     [Full research context + specific questions]
     Please act as a senior ML reviewer (NeurIPS/ICML level). Identify:
@@ -52,7 +57,7 @@ mcp__claude-review__review_start:
 After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
 
 ### Step 3: Iterative Dialogue (Rounds 2-N)
-Use `mcp__claude-review__review_reply_start` with the saved completed `threadId`, then poll `mcp__claude-review__review_status` with the returned `jobId` until `done=true` to continue the conversation:
+Use `mcp__claude-review__review_start-reply` with the returned `threadId` to continue the conversation:
 
 For each round:
 1. **Respond** to criticisms with evidence/counterarguments
@@ -84,12 +89,12 @@ Update project memory/notes with key review conclusions.
 
 ## Key Rules
 
-- Always ask the Claude reviewer for strict, high-rigor feedback.
+- ALWAYS use `config: {"model_reasoning_effort": "xhigh"}` for reviews
 - Send comprehensive context in Round 1 — the external model cannot read your files
 - Be honest about weaknesses — hiding them leads to worse feedback
 - Push back on criticisms you disagree with, but accept valid ones
 - Focus on ACTIONABLE feedback — "what experiment would fix this?"
-- Document the completed `threadId` for potential future resumption
+- Document the threadId for potential future resumption
 - The review document should be self-contained (readable without the conversation)
 
 ## Prompt Templates

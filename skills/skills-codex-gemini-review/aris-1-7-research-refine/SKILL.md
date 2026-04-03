@@ -42,6 +42,7 @@ User input (PROBLEM + vague APPROACH)
 - **MAX_CORE_EXPERIMENTS = 3** — Default cap for core validation blocks inside this skill.
 - **MAX_PRIMARY_CLAIMS = 2** — Soft cap for paper-level claims. Prefer one dominant claim plus one supporting claim.
 - **MAX_NEW_TRAINABLE_COMPONENTS = 2** — Soft cap for genuinely new trainable pieces. Exceed only if the paper breaks otherwise.
+- **CLAIM_TYPES = mechanism | empirical | robustness | efficiency | interpretation | speculation** — Use explicit claim typing in the claim ledger and audits.
 
 > Override via argument if needed, e.g. `/aris-1-7-research-refine "problem | approach" -- max rounds: 3, threshold: 9`.
 
@@ -289,16 +290,44 @@ Use this structure:
 
 ## Claim-Driven Validation Sketch
 ### Claim 1: [Main claim]
+- Claim type: [mechanism / empirical / robustness / efficiency / interpretation / speculation]
 - Minimal experiment:
 - Baselines / ablations:
 - Metric:
 - Expected evidence:
 
 ### Claim 2: [Optional]
+- Claim type: [mechanism / empirical / robustness / efficiency / interpretation / speculation]
 - Minimal experiment:
 - Baselines / ablations:
 - Metric:
 - Expected evidence:
+
+## Claim Ledger
+| ID | Claim Type | Claim Statement | Depends On | Minimal Evidence Needed | Status |
+|----|------------|-----------------|------------|-------------------------|--------|
+| C1 | mechanism  | ...             | A1, A2     | B1 main result          | planned |
+| C2 | empirical  | ...             | C1         | B2 ablation             | planned |
+
+## Logic Audit
+- Assumptions:
+- Mechanism steps:
+- Where causal language is used:
+- Which parts are hypotheses rather than established facts:
+- Potential confounds:
+- Strongest alternative explanation:
+
+## Boundaries and Non-Claims
+- This proposal does NOT claim:
+- This proposal is only expected to hold under:
+- Evidence still missing before stronger claims are allowed:
+
+## Verification Checklist
+- [ ] Every major claim has a linked experiment or argument
+- [ ] Every experiment is tied to a claim
+- [ ] No claim depends on unstated assumptions
+- [ ] No interpretive statement is presented as established fact
+- [ ] Non-claims are explicit
 
 ## Experiment Handoff Inputs
 - Must-prove claims:
@@ -372,6 +401,10 @@ mcp__gemini-review__review_start:
     - Priority: CRITICAL / IMPORTANT / MINOR
 
     Then add:
+    - **Claim Audit**: which claims are unsupported, overstated, conflated, or not yet operationalized.
+    - **Assumption Audit**: unstated assumptions, hidden dependencies, or missing conditions that the proposal currently relies on.
+    - **Alternative Explanation Audit**: the strongest simpler or non-causal explanation for any expected gain.
+    - **Verification Gaps**: exact evidence still needed before each central claim would be acceptable.
     - **Simplification Opportunities**: 1-3 concrete ways to delete, merge, or reuse components while preserving the main claim. Write "NONE" if already tight.
     - **Modernization Opportunities**: 1-3 concrete ways to replace old-school pieces with more natural foundation-model-era primitives if genuinely better. Write "NONE" if already modern enough.
     - **Drift Warning**: "NONE" if the proposal still solves the anchored problem; otherwise explain the drift clearly.
@@ -409,6 +442,10 @@ Extract:
 - **Overall score**
 - **Verdict**
 - **Drift Warning**
+- **Claim Audit**
+- **Assumption Audit**
+- **Alternative Explanation Audit**
+- **Verification Gaps**
 - **Simplification Opportunities**
 - **Modernization Opportunities**
 - **Action items** ranked by priority
@@ -489,8 +526,24 @@ Save to `refine-logs/round-N-refinement.md`:
 - Reasoning:
 - Impact on core method:
 
+## Claim Audit Resolution
+| Claim ID | Reviewer Concern | Action Taken | Result |
+|----------|------------------|-------------|--------|
+| C1       | ...              | ...         | ...    |
+
+## Evidence Mapping
+| Claim ID | Evidence Planned | Why It Is Sufficient | Remaining Gap |
+|----------|------------------|----------------------|---------------|
+| C1       | ...              | ...                  | ...           |
+
+## Logic Audit Update
+- Assumptions added/clarified:
+- Claims weakened or sharpened:
+- Confounds now explicitly handled:
+- Remaining unverifiable parts:
+
 ## Revised Proposal
-[Full updated proposal from Problem Anchor through Claim-Driven Validation Sketch]
+[Full updated proposal from Problem Anchor through Verification Checklist]
 ```
 
 **Checkpoint:** Update `refine-logs/REFINE_STATE.json` with `{"phase": "refine", "round": N, ...}`.

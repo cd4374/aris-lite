@@ -12,10 +12,12 @@ Draft a LaTeX paper based on: **$ARGUMENTS**
 ## Constants
 
 - **REVIEWER_MODEL = `claude-review`** — Claude reviewer invoked through the local `claude-review` MCP bridge. Set `CLAUDE_REVIEW_MODEL` if you need a specific Claude model override.
-- **TARGET_VENUE = `ICLR`** — Default venue. Supported: `ICLR`, `NeurIPS`, `ICML`, `CVPR` (also ICCV/ECCV), `ACL` (also EMNLP/NAACL), `AAAI`, `ACM` (ACM MM, SIGIR, KDD, CHI, etc.), `IEEE_JOURNAL` (IEEE Transactions / Letters, e.g., T-PAMI, JSAC, TWC, TCOM, TSP, TIP), `IEEE_CONF` (IEEE conferences, e.g., ICC, GLOBECOM, INFOCOM, ICASSP). Determines style file and formatting.
+- **TARGET_VENUE = `ICLR`** — Default venue. Supported: `ICLR`, `NeurIPS`, `ICML`, `CVPR` (also ICCV/ECCV), `ACL` (also EMNLP/NAACL), `AAAI`, `ACM` (ACM MM, SIGIR, KDD, CHI, etc.), `IEEE_JOURNAL` (IEEE Transactions / Letters, e.g., T-PAMI, JSAC, TWC, TCOM, TSP, TIP), `IEEE_CONF` (IEEE conferences, e.g., ICC, GLOBECOM, INFOCOM, ICASSP), `PRL`, `PRA`, `PRB`, `PRE`, `PRX` (APS Physical Review family). Determines style file and formatting.
 - **ANONYMOUS = true** — If true, use anonymous author block. Set `false` for camera-ready. Note: most IEEE venues do NOT use anonymous submission — set `false` for IEEE.
 - **MAX_PAGES = 9** — Main body page limit. For ML conferences: counts from first page to end of Conclusion section, references and appendix NOT counted. **For IEEE venues: references ARE counted toward the page limit.** Typical limits: IEEE journal = no strict limit (but 12-14 pages typical for Transactions, 4-5 for Letters), IEEE conference = 5-8 pages including references.
 - **DBLP_BIBTEX = true** — Fetch real BibTeX from DBLP/CrossRef instead of LLM-generated entries. Eliminates hallucinated citations. Zero install required. Set `false` to use legacy behavior (LLM search + `[VERIFY]` markers).
+- **WRITE_REVIEW_ROUNDS = 2** — Number of write → review → rewrite cycles per section for high-quality sections (abstract, intro).
+- **SECTION_QUALITY_THRESHOLD = 7** — Sections scoring < 7/10 must be rewritten.
 
 ## Inputs
 
@@ -24,16 +26,35 @@ Draft a LaTeX paper based on: **$ARGUMENTS**
 3. **Generated figures** — PDF/PNG files in `figures/` (from `/aris-4-2-paper-figure`)
 4. **LaTeX includes** — `figures/latex_includes.tex` (from `/aris-4-2-paper-figure`)
 5. **Bibliography** — existing `.bib` file, or will create one
+6. **Reproducibility evidence** — code entrypoint, environment/setup command, training command, eval command, config/hyperparameter source, checkpoint/data provenance
+7. **Authenticity evidence** — canonical results source (`03_AUTO_REVIEW.md`, `02_EXPERIMENT_RESULTS.md`, W&B/log IDs) for every headline number/claim
 
+### Reproducibility + Authenticity Minimum Checklist (required)
+
+Before finalizing draft text, ensure all items are explicitly documented (main paper or appendix):
+- runnable setup steps
+- exact train/eval commands
+- config/hyperparameter location
+- dataset split and preprocessing details
+- checkpoint/artifact identifiers and where to obtain them
+- seed count and variance reporting policy
+- hardware/runtime notes
+- claim→evidence mapping for all headline claims
+
+If any required item is missing, mark as blocker and do not claim submission-ready.
+
+Create a standalone evidence artifact before final gate using:
+- `../aris-common-references/reproducibility-authenticity-template.md`
+- output filename: `07_REPRODUCIBILITY_AND_AUTHENTICITY.md` (project root or paper root)
 If no canonical/legacy paper plan exists, ask the user to run `/aris-4-1-paper-plan` first or provide a brief outline.
 
 ## Orchestra-Guided Writing Overlay
 
 Keep the existing `insleep` workflow, file layout, and defaults. Use the shared references below only when they improve writing quality:
 
-- Read `../shared-references/writing-principles.md` before drafting the Abstract, Introduction, Related Work, or when prose feels generic.
-- Read `../shared-references/venue-checklists.md` during the final write-up and submission-readiness pass.
-- Read `../shared-references/citation-discipline.md` only when the built-in DBLP/CrossRef workflow is insufficient.
+- Read `../aris-common-references/writing-principles.md` before drafting the Abstract, Introduction, Related Work, or when prose feels generic.
+- Read `../aris-common-references/venue-checklists.md` during the final write-up and submission-readiness pass.
+- Read `../aris-common-references/citation-discipline.md` only when the built-in DBLP/CrossRef workflow is insufficient.
 
 These references are support material, not extra workflow phases.
 
@@ -41,7 +62,14 @@ These references are support material, not extra workflow phases.
 
 ### Venue-Specific Setup
 
-The skill includes conference templates in `templates/`. Select based on TARGET_VENUE:
+The skill includes conference templates in `templates/`. Select based on TARGET_VENUE.
+
+Template mapping:
+- `PRL` -> `aps_prl.tex`
+- `PRA` / `PRB` / `PRE` -> `aps_prabpre.tex`
+- `PRX` -> `aps_prx.tex`
+
+Select based on TARGET_VENUE:
 
 **ICLR:**
 ```latex
@@ -75,6 +103,25 @@ The skill includes conference templates in `templates/`. Select based on TARGET_
 \documentclass[conference]{IEEEtran}
 \usepackage{cite}  % IEEE uses \cite{}, NOT natbib
 % Author block uses \IEEEauthorblockN / \IEEEauthorblockA
+```
+
+**APS PRL:**
+```latex
+\documentclass[aps,prl,reprint,superscriptaddress]{revtex4-2}
+\usepackage{graphicx,amsmath,amssymb,hyperref}
+```
+
+**APS PRA/PRB/PRE:**
+```latex
+\documentclass[aps,pra,reprint,superscriptaddress]{revtex4-2}
+% switch `pra` to `prb` or `pre` based on target
+\usepackage{graphicx,amsmath,amssymb,hyperref}
+```
+
+**APS PRX:**
+```latex
+\documentclass[aps,prx,reprint,superscriptaddress]{revtex4-2}
+\usepackage{graphicx,amsmath,amssymb,hyperref}
 ```
 
 ### Project Structure
@@ -144,14 +191,14 @@ Process sections in order. For each section:
 2. **Read `04_NARRATIVE_REPORT.md` first (fallback: `NARRATIVE_REPORT.md`)** — extract relevant content, findings, and quantitative results
 3. **Draft content** — write complete LaTeX (not placeholders)
 4. **Insert figures/tables** — use snippets from `figures/latex_includes.tex`
-5. **Add citations** — for ML conferences (ICLR/NeurIPS/ICML/CVPR/ACL/AAAI): use `\citep{}` / `\citet{}` (natbib). **For IEEE venues**: use `\cite{}` (numeric style via `cite` package). Never mix natbib and cite commands.
+5. **Add citations** — for ML conferences (ICLR/NeurIPS/ICML/CVPR/ACL/AAAI): use `\citep{}` / `\citet{}` (natbib). **For IEEE/APS venues**: use `\cite{}` (numeric style). Never mix natbib and cite commands.
 
 Before drafting the front matter, re-read the one-sentence contribution from `05_PAPER_PLAN.md` first (fallback: `PAPER_PLAN.md`). The Abstract and Introduction should make that takeaway obvious before the reader reaches the full method.
 
 #### Section-Specific Guidelines
 
 **§0 Abstract:**
-- Use the 5-part flow from `../shared-references/writing-principles.md`: what, why hard, how, evidence, strongest result
+- Use the 5-part flow from `../aris-common-references/writing-principles.md`: what, why hard, how, evidence, strongest result
 - Must be self-contained (understandable without reading the paper)
 - Start with the paper's specific contribution, not generic field-level background
 - Include one concrete quantitative result
@@ -244,7 +291,7 @@ If both DBLP and CrossRef return nothing, mark the entry with `% [VERIFY]` comme
 
 **Why this matters:** LLM-generated BibTeX frequently hallucinates venue names, page numbers, or even co-authors. DBLP and CrossRef return publisher-verified metadata. Upstream skills (`/aris-1-1-research-lit`, `/aris-1-5-novelty-check`) may mention papers from LLM memory — this fetch chain is the gate that prevents hallucinated citations from entering the final `.bib`.
 
-If the DBLP/CrossRef flow is not enough, load `../shared-references/citation-discipline.md` for stricter fallback rules before adding placeholders.
+If the DBLP/CrossRef flow is not enough, load `../aris-common-references/citation-discipline.md` for stricter fallback rules before adding placeholders.
 
 **Automated bib cleaning** — use this Python pattern to extract only cited entries:
 
@@ -269,7 +316,7 @@ This prevents bib bloat (e.g., 948 lines → 215 lines in testing).
 
 After drafting all sections, scan for common AI writing patterns and fix them:
 
-First apply the sentence-level clarity rules from `../shared-references/writing-principles.md`:
+First apply the sentence-level clarity rules from `../aris-common-references/writing-principles.md`:
 
 - keep subject and verb close together,
 - put familiar context first and new information later,
@@ -294,6 +341,14 @@ Then fix the common content patterns below:
 
 Send the complete draft to Claude review:
 
+Review must explicitly grade four hard dimensions:
+1. rigor
+2. technical correctness
+3. content depth
+4. reproducibility + authenticity
+
+Any CRITICAL failure in these dimensions is a hard blocker.
+
 ```
 mcp__claude-review__review_start:
   model: gpt-5.4
@@ -310,8 +365,11 @@ mcp__claude-review__review_start:
     6. For theory papers: are proof sketches adequate?
     7. Are figures/tables clearly described and properly referenced?
     8. Would a skim reader understand the contribution from the title, abstract, introduction, and Figure 1?
+    9. Reproducibility audit: can an external reader reproduce key results from instructions/configs/artifacts?
+    10. Authenticity audit: are all headline numbers/claims traceable to real experiment artifacts (logs/W&B/results docs), with no fabricated evidence?
 
     For each issue, specify: severity (CRITICAL/MAJOR/MINOR), location, and fix.
+    If reproducibility or authenticity fails, mark CRITICAL and provide exact missing evidence.
 
     [paste full draft text]
 ```
@@ -319,6 +377,84 @@ mcp__claude-review__review_start:
 After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
 
 Apply CRITICAL and MAJOR fixes. Document MINOR issues for the user.
+
+After review, write a **Paper Quality Audit** block for downstream use:
+- strongest safe claim
+- unsupported claims
+- weakly supported claims
+- missing narrative bridges
+- section-level evidence gaps
+- must-fix items before compile / improvement loop
+
+### Step 6.5: Section-Level Iterative Refinement (Autoresearch Pattern)
+
+For high-impact sections (Abstract, Introduction, Conclusion), iterate until quality threshold is met:
+
+#### For each critical section:
+
+**Round 1**: Draft → Review
+
+```
+mcp__claude-review__review_start:
+  model: gpt-5.4
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
+    Review this [section name] for a [VENUE] paper.
+
+    Score 1-10 on:
+    1. Clarity and conciseness
+    2. Claim-evidence alignment
+    3. Skim-reader accessibility
+    4. Consistent claim strength
+    5. No overclaiming
+
+    Identify:
+    - Sentences that could be misinterpreted
+    - Claims that lack evidence
+    - Opportunities to strengthen the narrative
+
+    [paste section text]
+```
+
+After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
+
+**If score < SECTION_QUALITY_THRESHOLD**:
+
+1. Extract specific issues
+2. Rewrite the section addressing each issue
+3. Re-review with `mcp__claude-review__review_start-reply`
+4. Repeat until score >= SECTION_QUALITY_THRESHOLD or MAX_ROUNDS reached
+
+**Track section quality**:
+
+```markdown
+## Section Quality Ledger
+
+| Section | Round 1 Score | Issues Fixed | Round 2 Score | Final |
+|---------|---------------|--------------|---------------|-------|
+| Abstract | 6/10 | ... | 8/10 | 8/10 |
+| Introduction | 7/10 | ... | 7/10 | 7/10 |
+```
+
+#### Cross-Section Consistency Check
+
+After all sections pass quality threshold, verify consistency:
+
+```
+mcp__claude-review__review_start-reply:
+  threadId: [saved]
+  prompt: |
+    Check CROSS-SECTION consistency:
+
+    1. Does the abstract match the intro's main claims?
+    2. Does the conclusion restate claims consistently?
+    3. Are the strongest safe claims used uniformly?
+    4. Any contradictions between sections?
+
+    List any inconsistencies found.
+```
+
+Fix any inconsistencies before proceeding.
 
 ### Step 7: Reverse Outline Test (from Research-Paper-Writing-Skills)
 
@@ -347,8 +483,12 @@ Before declaring done:
 - [ ] references.bib contains ONLY cited entries (no bloat)
 - [ ] **No stale section files** — every .tex in `sections/` is `\input`ed by `main.tex`
 - [ ] **Section files match main.tex** — file numbering and `\input` paths are consistent
-- [ ] Venue-specific required sections/checklists satisfied (read `../shared-references/venue-checklists.md` if needed)
+- [ ] Venue-specific required sections/checklists satisfied (read `../aris-common-references/venue-checklists.md` if needed)
 - [ ] A skim reader can recover the main claim from the title, abstract, introduction, and Figure 1/captions
+- [ ] Every introduction claim has supporting evidence in the paper
+- [ ] No section overstates beyond the strongest safe claim
+- [ ] Abstract / introduction / conclusion use consistent claim strength
+- [ ] Limitations reflect remaining evidence gaps honestly
 
 ## Key Rules
 
@@ -368,9 +508,9 @@ Before declaring done:
 
 ## Writing Quality Reference
 
-- `../shared-references/writing-principles.md` — story framing, abstract/introduction patterns, sentence-level clarity, reviewer reading order
-- `../shared-references/venue-checklists.md` — ICLR/NeurIPS/ICML/IEEE submission requirements to check before declaring done
-- `../shared-references/citation-discipline.md` — stricter fallback for ambiguous citations
+- `../aris-common-references/writing-principles.md` — story framing, abstract/introduction patterns, sentence-level clarity, reviewer reading order
+- `../aris-common-references/venue-checklists.md` — ICLR/NeurIPS/ICML/IEEE/APS submission requirements to check before declaring done
+- `../aris-common-references/citation-discipline.md` — stricter fallback for ambiguous citations
 
 Keep using the reverse-outline test and anti-inflation polish from the main workflow above; the shared references are there to improve quality without adding a new phase.
 

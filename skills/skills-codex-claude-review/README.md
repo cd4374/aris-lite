@@ -2,6 +2,9 @@
 
 This package is a **thin override layer** for users who want:
 
+> Generated artifact: regenerate from `tools/generate_skill_variants.py` (variant `codex-claude-review`), do not hand-edit.
+
+
 - **Codex** as the main executor
 - **Claude Code** as the reviewer
 - the local `claude-review` MCP bridge instead of a second Codex reviewer

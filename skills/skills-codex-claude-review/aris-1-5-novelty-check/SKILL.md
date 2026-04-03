@@ -12,10 +12,12 @@ Check whether a proposed method/idea has already been done in the literature: **
 ## Constants
 
 - **REVIEWER_MODEL = `claude-review`** — Claude reviewer invoked through the local `claude-review` MCP bridge. Set `CLAUDE_REVIEW_MODEL` if you need a specific Claude model override.
+- MAX_SEARCH_ROUNDS = 3 — Maximum iterations of search → verify → refine
+- NOVELTY_THRESHOLD = 7 — Ideas scoring < 7/10 require additional verification or refinement
 
 ## Instructions
 
-Given a method description, systematically verify its novelty:
+Given a method description, systematically verify its novelty through iterative refinement:
 
 ### Phase A: Extract Key Claims
 1. Read the user's method description
@@ -41,20 +43,17 @@ For EACH core claim, search using ALL available sources:
 3. **Read abstracts**: For each potentially overlapping paper, WebFetch its abstract and related work section
 
 ### Phase C: Cross-Model Verification
-Call REVIEWER_MODEL via `mcp__claude-review__review_start` with high-rigor review:
+Call REVIEWER_MODEL via Codex MCP (`mcp__claude-review__review_start`) with xhigh reasoning:
 ```
-mcp__claude-review__review_start:
-  prompt: |
-    [Full novelty briefing + prior work list + specific novelty questions]
+config: {"model_reasoning_effort": "xhigh"}
 ```
-
-After this start call, immediately save the returned `jobId` and poll `mcp__claude-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
 Prompt should include:
 - The proposed method description
 - All papers found in Phase B
 - Ask: "Is this method novel? What is the closest prior work? What is the delta?"
 
 ### Phase D: Novelty Report
+
 Output a structured report:
 
 ```markdown
@@ -82,9 +81,69 @@ Output a structured report:
 [How to frame the contribution to maximize novelty perception]
 ```
 
+### Phase E: Iterative Refinement (Autoresearch Pattern)
+
+If novelty score < NOVELTY_THRESHOLD:
+
+#### Round 1: Refine the Idea
+
+1. **Identify the delta**: What specific aspect could be changed to increase novelty?
+   - Different problem setting?
+   - Different mechanism?
+   - Different evaluation?
+
+2. **Generate refined variants**:
+```
+mcp__claude-review__review_start-reply:
+  threadId: [saved]
+  prompt: |
+    The novelty score was X/10, which is below threshold.
+
+    Generate 2-3 REFINED variants of this idea that would score higher:
+
+    1. Each variant should address a specific overlap issue
+    2. Each variant should be testable with similar resources
+    3. Explain why each variant would be more novel
+
+    Original idea: [description]
+    Overlap issues: [from Phase C]
+```
+
+3. **Quick-check refined variants**: For each variant, do a targeted search (2-3 queries) to see if it exists.
+
+4. **Re-evaluate**: If a refined variant shows promise, run Phase C again with the variant.
+
+#### Round 2+: Repeat Until Threshold Met or MAX_SEARCH_ROUNDS Reached
+
+- Track search queries and results to avoid repeating
+- Each round should focus on a different aspect (method, setting, evaluation)
+- Document all variants tried and their outcomes
+
+#### Final Report Update
+
+Add to the novelty report:
+
+```markdown
+## Iterative Refinement Log
+
+| Round | Variant | Search Queries | Result | Novelty Score |
+|-------|---------|----------------|--------|---------------|
+| 1 | Original | ... | Found overlap with X | 5/10 |
+| 1 | Refined A | ... | No direct overlap | 7/10 |
+| 2 | Refined A+ | ... | Confirmed novel | 8/10 |
+
+## Recommended Variant
+[Best-scoring variant or original if unrefined]
+
+## Remaining Risks
+[Even with refinement, what could a reviewer still object to?]
+```
+
 ### Important Rules
 - Be BRUTALLY honest — false novelty claims waste months of research time
 - "Applying X to Y" is NOT novel unless the application reveals surprising insights
 - Check both the method AND the experimental setting for novelty
 - If the method is not novel but the FINDING would be, say so explicitly
 - Always check the most recent 6 months of arXiv — the field moves fast
+- **Iterate when score is low**: Don't stop at one negative result — refine and re-check
+- **Document all variants**: Future searches should not repeat failed queries

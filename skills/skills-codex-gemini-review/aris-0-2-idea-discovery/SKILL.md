@@ -31,6 +31,7 @@ Each phase builds on the previous one's output. The final deliverables are a val
 - **ARXIV_DOWNLOAD = false** — When `true`, `/aris-1-1-research-lit` downloads the top relevant arXiv PDFs during Phase 1. When `false` (default), only fetches metadata. Passed through to `/aris-1-1-research-lit`.
 - **COMPACT = false** — When `true`, generate compact summary files for short-context models and session recovery. Writes `IDEA_CANDIDATES.md` (top 3-5 ideas only) at the end of this workflow. Downstream skills read this instead of the full `01_IDEA_REPORT.md` (fallback: `IDEA_REPORT.md`).
 - **REF_PAPER = false** — Reference paper to base ideas on. Accepts: local PDF path, arXiv URL, or any paper URL. When set, the paper is summarized first (`REF_PAPER_SUMMARY.md`), then idea generation uses it as context. Combine with `base repo` for "improve this paper with this codebase" workflows.
+- **META_REFLECTION = true** — When `true`, run a meta-reflection phase after the pipeline completes to evaluate the process itself.
 
 > 💡 These are defaults. Override by telling the skill, e.g., `/aris-0-2-idea-discovery "topic" — ref paper: https://arxiv.org/abs/2406.04329` or `/aris-0-2-idea-discovery "topic" — compact: true`.
 
@@ -297,6 +298,113 @@ Write `IDEA_CANDIDATES.md` — a lean summary of the top 3-5 surviving ideas:
 ```
 
 This file is intentionally small (~30 lines) so downstream skills and session recovery can read it without loading the full `01_IDEA_REPORT.md` (~200+ lines; fallback: `IDEA_REPORT.md`).
+
+### Phase 5.6: Meta-Reflection (when META_REFLECTION = true)
+
+**Skip entirely if `META_REFLECTION` is `false`.**
+
+After the pipeline completes, reflect on the process itself to improve future iterations:
+
+1. **Invoke Codex for meta-analysis**:
+
+```
+mcp__gemini-review__review_start:
+  model: REVIEWER_MODEL
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
+    You are a senior ML researcher reflecting on a completed idea discovery process.
+
+    Research direction: [user's direction]
+    Final outcome: [top idea selected, pilot results, novelty score, reviewer score]
+
+    Reflect on the PROCESS itself:
+
+    1. **What went well?**
+       - Which phase produced the most valuable signal?
+       - Did we kill bad ideas early enough?
+       - Did pilot experiments save us from a bad direction?
+
+    2. **What could be improved?**
+       - Did we explore enough breadth before narrowing?
+       - Did we miss any obvious directions?
+       - Was the filtering too aggressive or too lenient?
+
+    3. **Process biases**:
+       - Did we favor certain types of ideas (method vs empirical vs diagnostic)?
+       - Did novelty concerns over-constrain idea generation?
+       - Did pilot feasibility bias us toward low-risk, low-reward ideas?
+
+    4. **Resource allocation**:
+       - GPU-hours spent vs budget
+       - Time spent per phase — was it proportionate to value?
+       - Should we have run more/fewer pilots?
+
+    5. **Recommendations for next run**:
+       - What constant values should be adjusted?
+       - What phase should get more/less attention?
+       - What checks should be added?
+
+    Output a structured META_REFLECTION.md report.
+```
+
+After this start call, immediately save the returned `jobId` and poll `mcp__gemini-review__review_status` with a bounded `waitSeconds` until `done=true`. Treat the completed status payload's `response` as the reviewer output, and save the completed `threadId` for any follow-up round.
+
+2. **Write `META_REFLECTION.md`**:
+
+```markdown
+# Meta-Reflection: Idea Discovery Process
+
+**Direction**: [research direction]
+**Date**: [today]
+**Outcome**: [top idea selected]
+
+## Process Quality Score
+- Overall: X/10
+- Phase 1 (Literature): X/10
+- Phase 2 (Idea Gen): X/10
+- Phase 3 (Novelty): X/10
+- Phase 4 (Review): X/10
+- Phase 5 (Pilots): X/10
+
+## What Went Well
+[3-5 bullets]
+
+## What Could Be Improved
+[3-5 bullets with specific suggestions]
+
+## Process Biases Detected
+[Bias type: how it manifested: mitigation for next run]
+
+## Resource Allocation
+| Phase | Time | GPU-hours | Value |
+|-------|------|-----------|-------|
+| Lit Survey | X min | 0 | HIGH/MEDIUM/LOW |
+| Idea Gen | X min | 0 | HIGH |
+| Novelty Check | X min | 0 | HIGH |
+| Review | X min | 0 | HIGH |
+| Pilots | X min | X | HIGH/MEDIUM/LOW |
+
+## Recommendations for Next Run
+1. [Specific actionable recommendation]
+2. [...]
+
+## Constants to Adjust
+| Constant | Current | Recommended | Reason |
+|----------|---------|-------------|--------|
+| PILOT_MAX_HOURS | 2 | X | ... |
+| MAX_PILOT_IDEAS | 3 | X | ... |
+```
+
+3. **Optional: Send to user**:
+
+```
+🪞 Meta-reflection complete:
+- Process quality: X/10
+- Key improvement: [main recommendation]
+- See META_REFLECTION.md for details
+```
+
+This phase enables continuous improvement of the idea discovery process itself, following the autoresearch "reflection-action loop" pattern.
 
 ## Key Rules
 
