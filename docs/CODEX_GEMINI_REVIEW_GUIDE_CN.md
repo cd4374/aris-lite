@@ -248,3 +248,23 @@ codex mcp add gemini-review --env GEMINI_REVIEW_BACKEND=api --env GEMINI_REVIEW_
 - 只在 `skills/skills-codex-gemini-review/*` 里覆盖 reviewer-aware skills
 - 让 `mcp-servers/gemini-review/server.py` 只聚焦 `review*` 兼容契约
 - 如果某个 skill 需要审查 poster PNG，就通过 direct Gemini API backend 传 `imagePaths`，而不是再发明第二套 bridge
+
+这个 overlay 目录是 generated artifact。
+
+推荐重新生成命令：
+
+```bash
+python3 tools/generate_skill_variants.py --variant codex-gemini-review --write
+```
+
+兼容入口（仍可用）：
+
+```bash
+python3 tools/generate_codex_gemini_review_overrides.py
+```
+
+漂移检查：
+
+```bash
+python3 tools/generate_skill_variants.py --check
+```

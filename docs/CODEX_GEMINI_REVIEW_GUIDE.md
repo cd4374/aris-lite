@@ -247,3 +247,23 @@ Keep this path intentionally narrow:
 - only override the reviewer-aware skills in `skills/skills-codex-gemini-review/*`
 - keep `mcp-servers/gemini-review/server.py` focused on the `review*` compatibility contract
 - when a skill needs poster PNG review, pass local `imagePaths` through the direct Gemini API backend instead of inventing a second bridge
+
+This overlay is a generated artifact.
+
+Preferred regenerate command:
+
+```bash
+python3 tools/generate_skill_variants.py --variant codex-gemini-review --write
+```
+
+Compatibility wrapper (still supported):
+
+```bash
+python3 tools/generate_codex_gemini_review_overrides.py
+```
+
+Drift check:
+
+```bash
+python3 tools/generate_skill_variants.py --check
+```

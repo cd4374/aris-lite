@@ -1,6 +1,8 @@
 ---
 name: aris-4-5-paper-compile
-description: "Compile LaTeX paper to PDF, fix errors, and verify output. Use when user says \\\"\u7f16\u8bd1\u8bba\u6587\\\", \\\"compile paper\\\", \\\"build PDF\\\", \\\"\u751f\u6210PDF\\\", or wants to compile LaTeX into a submission-ready PDF."
+description: "Compile LaTeX paper to PDF, fix errors, and verify output. Use when user says \"编译论文\", \"compile paper\", \"build PDF\", \"生成PDF\", or wants to compile LaTeX into a submission-ready PDF."
+argument-hint: [paper-directory]
+allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob
 ---
 
 # Paper Compile: LaTeX to Submission-Ready PDF
@@ -13,7 +15,7 @@ Compile the LaTeX paper and fix any issues: **$ARGUMENTS**
 - **ENGINE = `pdflatex`** — LaTeX engine. Options: `pdflatex` (default), `xelatex` (for CJK/custom fonts), `lualatex`.
 - **MAX_COMPILE_ATTEMPTS = 3** — Maximum attempts to fix errors and recompile.
 - **PAPER_DIR = `paper/`** — Directory containing LaTeX source files.
-- **MAX_PAGES** — Page limit. ML conferences: main body to Conclusion end (excluding references & appendix). ICLR=9, NeurIPS=9, ICML=8. **IEEE venues: references ARE included in page count.** IEEE journal ≈ 12-14 pages, IEEE conference ≈ 5-8 pages (all inclusive).
+- **MAX_PAGES** — Page limit. ML conferences: main body to Conclusion end (excluding references & appendix). ICLR=9, NeurIPS=9, ICML=8. **IEEE venues: references ARE included in page count.** IEEE journal ≈ 12-14 pages, IEEE conference ≈ 5-8 pages (all inclusive). **APS journals usually judge journal-style submission packages rather than ML-style page caps; verify venue-specific PR-family limits and letter/full-length expectations before final submission.**
 
 ## Workflow
 
@@ -53,6 +55,10 @@ latexmk -C
 
 # Full compilation (pdflatex + bibtex + pdflatex × 2)
 latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex 2>&1 | tee compile.log
+
+# APS/REVTeX papers: keep bibtex workflow and avoid natbib-only commands
+# If the draft uses revtex4-2, verify main.tex selects the correct PR-family class option
+# (prl / pra / prb / pre / prx) before rerunning latexmk.
 ```
 
 ### Step 3: Error Diagnosis and Auto-Fix
@@ -82,6 +88,12 @@ LaTeX Warning: Reference `fig:xyz' on page 3 undefined
 LaTeX Warning: Citation `smith2024' undefined
 ```
 → Add the missing entry to `references.bib` or fix the citation key.
+
+**APS citation/style mismatch:**
+```
+Undefined control sequence ... \citep / \citet
+```
+→ REVTeX APS drafts should use numeric `\cite{}` style. Replace natbib-only commands and confirm `revtex4-2` + `apsrev4-2` workflow stays consistent.
 
 **`[VERIFY]` markers in text:**
 → Search for `[VERIFY]` markers left by `/aris-4-4-paper-write`. These indicate unverified citations or facts. Search for the correct information or flag to the user.
@@ -139,6 +151,10 @@ pdfinfo main.pdf | grep Pages
 - [ ] No "??" in the PDF (undefined references — grep the log)
 - [ ] No "[?]" in the PDF (undefined citations — grep the log)
 - [ ] Figures are rendered (not missing image placeholders)
+- [ ] `paper/PAPER_IMPROVEMENT_LOG.md` presence checked if present
+- [ ] `paper/PAPER_ISSUE_LEDGER.md` presence checked if present
+- [ ] `figures/FIGURE_ISSUE_LEDGER.md` presence checked if present
+- [ ] `figures/FIGURE_QUALITY_REPORT.md` presence checked if present
 
 ```bash
 # Check for undefined references
@@ -155,6 +171,8 @@ grep -c "Citation.*undefined" compile.log
 **For ML conferences (ICLR/NeurIPS/ICML/CVPR/ACL/AAAI):** Main body = first page through end of Conclusion section (not necessarily §5 — could be §6, §7, or §8 depending on structure). References and appendix are NOT counted.
 
 **For IEEE venues:** The TOTAL page count (including references) must fit within the limit. There is no separate "main body" counting — everything up to and including the references counts.
+
+**For APS PR-family venues:** First confirm the draft is using `revtex4-2` with the correct class option (`prl`, `pra`, `prb`, `pre`, or `prx`). Then verify the manuscript shape matches the target venue's expectations (e.g. PRL letter-style brevity vs full-length PRA/PRB/PRE/PRX article structure). Treat mixed natbib/APS citation commands or non-REVTeX structure as a blocking compile/readiness issue.
 
 **Precise check using `pdftotext`:**
 ```bash
@@ -200,17 +218,14 @@ This prevents confusion from leftover files when section structure changes (e.g.
 
 ### Step 7: Submission Readiness
 
-For conference submission, additional checks:
+For submission readiness, additional checks:
 
-- [ ] **Anonymous**: no author names, affiliations, or self-citations that reveal identity
-- [ ] **Page limit**: main body within MAX_PAGES (to end of Conclusion)
-- [ ] **Font embedding**: all fonts embedded in PDF
-  ```bash
-  pdffonts main.pdf | grep -v "yes"  # should return nothing (or only header)
-  ```
+- [ ] **No `[VERIFY]` markers**: unresolved uncertainty markers should not remain
+- [ ] **Claim/evidence artifacts ready for gate**: latest `PAPER_IMPROVEMENT_LOG.md`, `PAPER_ISSUE_LEDGER.md`, and reproducibility artifact are available when present
+- [ ] **APS structure check**: `revtex4-2` class with the correct PR-family option and no natbib-only citation commands in APS drafts
 - [ ] **No supplementary mixed in**: appendix clearly after `\newpage\appendix`
-- [ ] **File size**: reasonable (< 50MB for most venues, < 10MB preferred)
-- [ ] **No `[VERIFY]` markers**: search the PDF text for leftover markers
+
+Formatting-only submission operations (anonymity, line numbers, portal metadata) are intentionally out of scope here.
 
 ### Step 8: Output Summary
 
@@ -226,6 +241,14 @@ For conference submission, additional checks:
 - **Undefined references**: 0
 - **Undefined citations**: 0
 
+### Paper Quality Handoff
+- Paper Quality Audit: present / absent
+- PAPER_IMPROVEMENT_LOG.md: present / absent
+- PAPER_ISSUE_LEDGER.md: present / absent
+- FIGURE_ISSUE_LEDGER.md: present / absent
+- FIGURE_QUALITY_REPORT.md: present / absent
+- Recommended next step: write / improve / submission-gate
+
 ### Next Steps
 - [ ] Visual inspection of PDF
 - [ ] Run `/aris-4-4-paper-write` to fix any content issues
@@ -238,8 +261,8 @@ For conference submission, additional checks:
 - **Keep compile.log** — useful for debugging
 - **Don't suppress warnings** — report them, let the user decide
 - **If LaTeX is not installed**, provide clear installation instructions rather than failing silently
-- **Font embedding is critical** — some venues reject PDFs with non-embedded fonts
 - **Page count rules differ by venue** — ML conferences: main body to Conclusion (refs excluded). **IEEE venues: total pages including references.**
+- **Successful compilation is not the same as content readiness** — pass content-quality artifacts forward to the improvement loop or submission gate.
 
 ## Common Venue Requirements
 
@@ -250,4 +273,6 @@ For conference submission, additional checks:
 | ICML 2025 | `icml2025.sty` | `natbib` (`\citep`/`\citet`) | 8 pages (to Conclusion end) | No | OpenReview |
 | IEEE Journal | `IEEEtran.cls` [journal] | `cite` (`\cite{}`, numeric) | ~12-14 pages (Transactions) / ~4-5 (Letters) | **Yes** | IEEE Author Portal / ScholarOne |
 | IEEE Conference | `IEEEtran.cls` [conference] | `cite` (`\cite{}`, numeric) | 5-8 pages (varies by conf) | **Yes** | EDAS / IEEE Author Portal |
-
+| APS PRL | `revtex4-2` with `prl` | APS numeric (`\cite{}`) | Letter-style; verify current PRL guidance | Venue-specific | APS submission system |
+| APS PRA/PRB/PRE | `revtex4-2` with `pra` / `prb` / `pre` | APS numeric (`\cite{}`) | Journal-style; verify target journal expectations | Venue-specific | APS submission system |
+| APS PRX | `revtex4-2` with `prx` | APS numeric (`\cite{}`) | Journal-style; verify target journal expectations | Venue-specific | APS submission system |

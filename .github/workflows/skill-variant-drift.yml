@@ -1,0 +1,40 @@
+name: Skill Variant Drift Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  skill-variant-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check generated overlay drift
+        run: python3 tools/generate_skill_variants.py --check
+
+      - name: Run variant generator tests
+        run: python3 -m unittest tests/test_skill_variant_generator.py
+
+      - name: Build base-vs-codex drift report (informational)
+        run: |
+          python3 tools/skill_variant_drift_report.py \
+            --json-out artifacts/skill_drift_report.json \
+            --markdown-out artifacts/skill_drift_report.md \
+            --priority-out artifacts/skill_drift_priority.md
+
+      - name: Upload drift report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-drift-report
+          path: artifacts/skill_drift_report.*
+
+      - name: Run drift report tests
+        run: python3 -m unittest tests/test_skill_variant_drift_report.py

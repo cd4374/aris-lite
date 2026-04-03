@@ -14,8 +14,8 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 ## Constants
 
 - MAX_ROUNDS = 4
-- POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
-- REVIEW_DOC: `03_03_AUTO_REVIEW.md` in project root (cumulative log; fallback readers may still consume `03_AUTO_REVIEW.md`)
+- POSITIVE_THRESHOLD: score >= 8/10 AND explicit verdict indicates "ready for submission"
+- REVIEW_DOC: `03_AUTO_REVIEW.md` in project root (cumulative log; fallback readers may still consume `AUTO_REVIEW.md`)
 - REVIEWER_MODEL = `MiniMax-M2.7` — Model used via MiniMax API
 
 ## API Configuration
@@ -56,24 +56,57 @@ curl -s "https://api.minimax.io/v1/chat/completions" \
 
 **Why MiniMax instead of Codex MCP?** Codex CLI uses OpenAI's Responses API (`/v1/responses`) which is not supported by third-party providers. See: https://github.com/openai/codex/discussions/7782
 
-## State Persistence (Compact Recovery)
+## Loop Roles
+
+- **Reviewer**: external MiniMax assessment only.
+- **Optimizer**: implements prioritized fixes.
+- **Judge**: applies deterministic stop criteria from round state.
+
+## Loop Phases
+
+1. Review
+2. Parse & prioritize
+3. Implement
+4. Verify/wait
+5. Judge
+6. Document
+
+## Iteration State (Compact Recovery)
 
 Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `REVIEW_STATE.json` after each round:
 
 ```json
 {
+  "loop_name": "aris-3-5-auto-review-loop-minimax",
   "round": 2,
+  "max_rounds": 4,
+  "phase": "document",
   "status": "in_progress",
+  "review_thread_id": "",
   "last_score": 5.0,
   "last_verdict": "not ready",
-  "pending_experiments": ["screen_name_1"],
-  "timestamp": "2026-03-13T21:00:00"
+  "open_actions": ["screen_name_1"],
+  "completed_actions": [],
+  "stop_reason": "",
+  "updated_at": "2026-03-13T21:00:00"
 }
 ```
 
 **Write this file at the end of every Phase E** (after documenting the round). Overwrite each time — only the latest state matters.
 
-**On completion** (positive assessment or max rounds), set `"status": "completed"` so future invocations don't accidentally resume a finished loop.
+**On completion** (positive assessment or max rounds), set `"status": "completed"` with non-empty `stop_reason`.
+
+## Stop Criteria (ordered)
+
+1. success threshold reached
+2. hard max rounds reached
+3. no actionable issues remain
+4. plateau for 2 consecutive rounds
+5. user stop via checkpoint
+
+## Round Output Contract
+
+Each round updates `03_AUTO_REVIEW.md` + `REVIEW_STATE.json` with score, verdict, action deltas, and judge decision (`continue/stop` + `stop_reason`).
 
 ## Workflow
 
@@ -82,11 +115,11 @@ Long-running loops may hit the context window limit, triggering automatic compac
 1. **Check for `REVIEW_STATE.json`** in project root:
    - If it does not exist: **fresh start** (normal case)
    - If it exists AND `status` is `"completed"`: **fresh start** (previous loop finished normally)
-   - If it exists AND `status` is `"in_progress"` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
-   - If it exists AND `status` is `"in_progress"` AND `timestamp` is within 24 hours: **resume**
-     - Read the state file to recover `round`, `last_score`, `pending_experiments`
-     - Read `03_03_AUTO_REVIEW.md` first (fallback: `03_AUTO_REVIEW.md`) to restore full context of prior rounds
-     - If `pending_experiments` is non-empty, check if they have completed (e.g., check screen sessions)
+   - If it exists AND `status` is `"in_progress"` AND `updated_at` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
+   - If it exists AND `status` is `"in_progress"` AND `updated_at` is within 24 hours: **resume**
+     - Read the state file to recover `round`, `last_score`, `open_actions`
+     - Read `03_AUTO_REVIEW.md` first (fallback: `AUTO_REVIEW.md`) to restore full context of prior rounds
+     - If `open_actions` is non-empty, verify completion status before scheduling new work
      - Resume from the next round (round = saved round + 1)
      - Log: "Recovered from context compaction. Resuming at Round N."
 2. Read project narrative documents, memory files, and any prior review documents
@@ -143,7 +176,7 @@ Then extract structured fields:
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
 
-**STOP CONDITION**: If score >= 6 AND verdict contains "ready" or "almost" → stop loop, document final state.
+**STOP CONDITION**: Apply stop criteria in order. Success only when score >= 8 AND verdict explicitly indicates "ready for submission".
 
 #### Phase C: Implement Fixes (if not stopping)
 

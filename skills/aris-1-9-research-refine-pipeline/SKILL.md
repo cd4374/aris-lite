@@ -80,6 +80,10 @@ Before the experiment stage, write a short gate check:
 - What complexity was intentionally rejected?
 - Which reviewer concerns still matter for validation?
 - Is a frontier primitive central, optional, or absent?
+- What are the top 1-2 claims by ID?
+- What evidence is currently planned for each?
+- What rival explanation must each block rule out?
+- What claims are explicitly not being made?
 
 If these answers are not crisp, tighten the final proposal first.
 
@@ -134,6 +138,13 @@ Write `refine-logs/PIPELINE_SUMMARY.md` with canonical artifact references:
 ## Main Risks
 - [Risk]:
 - [Mitigation]:
+
+## Rigor Consistency Check
+- Claims reused consistently across proposal and experiment plan: yes/no
+- Any claim added during experiment planning that was absent from proposal:
+- Any proposal claim lacking a validation block:
+- Any experiment block without a linked claim:
+- Explicit non-claims preserved:
 
 ## Next Action
 - Proceed to `/aris-2-1-run-experiment`

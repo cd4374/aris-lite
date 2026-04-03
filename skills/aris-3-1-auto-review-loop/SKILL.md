@@ -14,33 +14,69 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 ## Constants
 
 - MAX_ROUNDS = 4
-- POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
+- POSITIVE_THRESHOLD: score >= 8/10 AND verdict explicitly indicates "ready for submission". Do not stop on "almost", "accept", or weaker positive phrasing.
 - REVIEW_DOC: `03_AUTO_REVIEW.md` in project root (cumulative log, canonical)
+- PRIMARY_CLAIM_CLEARANCE_REQUIRED = true — Do not stop on score alone if a primary claim is still flagged as unsupported, weakly supported, or confounded.
 - REVIEWER_MODEL = `gpt-5.4` — Model used via Codex MCP. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`)
 - **HUMAN_CHECKPOINT = false** — When `true`, pause after each round's review (Phase B) and present the score + weaknesses to the user. Wait for user input before proceeding to Phase C. The user can: approve the suggested fixes, provide custom modification instructions, skip specific fixes, or stop the loop early. When `false` (default), the loop runs fully autonomously.
 - **COMPACT = false** — When `true`, (1) read `EXPERIMENT_LOG.md` and `findings.md` instead of parsing full logs on session recovery, (2) append key findings to `findings.md` after each round.
 
 > 💡 Override: `/aris-3-1-auto-review-loop "topic" — compact: true, human checkpoint: true`
 
-## State Persistence (Compact Recovery)
+## Loop Roles
 
-Long-running loops may hit the context window limit, triggering automatic compaction. To survive this, persist state to `REVIEW_STATE.json` after each round:
+- **Reviewer**: external model assessment only (scores, weaknesses, minimum fixes).
+- **Optimizer**: implements prioritized fixes (code/experiments/analysis/reframing).
+- **Judge**: applies deterministic stop criteria from structured round state.
+
+## Loop Phases
+
+1. Review
+2. Parse & prioritize
+3. Implement
+4. Verify/wait
+5. Judge
+6. Document
+
+## Iteration State (Compact Recovery)
+
+Long-running loops may hit the context window limit, triggering automatic compaction. Persist state to `REVIEW_STATE.json` after each round:
 
 ```json
 {
+  "loop_name": "aris-3-1-auto-review-loop",
   "round": 2,
-  "threadId": "019cd392-...",
+  "max_rounds": 4,
+  "phase": "document",
   "status": "in_progress",
+  "review_thread_id": "019cd392-...",
   "last_score": 5.0,
   "last_verdict": "not ready",
-  "pending_experiments": ["screen_name_1"],
-  "timestamp": "2026-03-13T21:00:00"
+  "open_actions": ["run ablation on baseline B"],
+  "completed_actions": ["add metric M"],
+  "stop_reason": "",
+  "updated_at": "2026-03-13T21:00:00"
 }
 ```
 
 **Write this file at the end of every Phase E** (after documenting the round). Overwrite each time — only the latest state matters.
 
-**On completion** (positive assessment or max rounds), set `"status": "completed"` so future invocations don't accidentally resume a finished loop.
+**On completion** (positive assessment or max rounds), set `"status": "completed"` with a non-empty `stop_reason`.
+
+## Stop Criteria (ordered)
+
+1. Success threshold reached (score + explicit ready verdict + no primary unsupported claim).
+2. Hard max rounds reached.
+3. No actionable issues remain.
+4. Plateau for 2 consecutive rounds (no material improvement).
+5. User stop via checkpoint.
+
+## Round Output Contract
+
+Each round must append to `03_AUTO_REVIEW.md` and update `REVIEW_STATE.json` with:
+- score, verdict, prioritized actions
+- what was changed and what evidence was produced
+- judge decision: continue/stop + `stop_reason`
 
 ## Workflow
 
@@ -49,11 +85,11 @@ Long-running loops may hit the context window limit, triggering automatic compac
 1. **Check for `REVIEW_STATE.json`** in project root:
    - If it does not exist: **fresh start** (normal case, identical to behavior before this feature existed)
    - If it exists AND `status` is `"completed"`: **fresh start** (previous loop finished normally)
-   - If it exists AND `status` is `"in_progress"` AND `timestamp` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
-   - If it exists AND `status` is `"in_progress"` AND `timestamp` is within 24 hours: **resume**
-     - Read the state file to recover `round`, `threadId`, `last_score`, `pending_experiments`
+   - If it exists AND `status` is `"in_progress"` AND `updated_at` is older than 24 hours: **fresh start** (stale state from a killed/abandoned run — delete the file and start over)
+   - If it exists AND `status` is `"in_progress"` AND `updated_at` is within 24 hours: **resume**
+     - Read the state file to recover `round`, `review_thread_id`, `last_score`, `open_actions`
      - Read `03_AUTO_REVIEW.md` (fallback: `AUTO_REVIEW.md`) to restore full context of prior rounds
-     - If `pending_experiments` is non-empty, check if they have completed (e.g., check screen sessions)
+     - If `open_actions` is non-empty, verify completion status before scheduling new work
      - Resume from the next round (round = saved round + 1)
      - Log: "Recovered from context compaction. Resuming at Round N."
 2. Read project narrative documents, memory files, and any prior review documents. **When `COMPACT = true` and compact files exist**: read `findings.md` + `EXPERIMENT_LOG.md` instead of full `03_AUTO_REVIEW.md` / `AUTO_REVIEW.md` and raw logs — saves context window.
@@ -83,13 +119,19 @@ mcp__codex__codex:
     2. List remaining critical weaknesses (ranked by severity)
     3. For each weakness, specify the MINIMUM fix (experiment, analysis, or reframing)
     4. State clearly: is this READY for submission? Yes/No/Almost
+    5. List **Unsupported Claims**
+    6. List **Weakly Supported Claims**
+    7. List **Missing Controls or Ablations**
+    8. List **Alternative Explanations Not Ruled Out**
+    9. Identify the **Cheapest High-Value Verification** still missing
+    10. List any **Claims That Must Be Weakened Now**
 
     Be brutally honest. If the work is ready, say so clearly.
 ```
 
-If this is round 2+, use `mcp__codex__codex-reply` with the saved threadId to maintain conversation context.
+If this is round 2+, use `mcp__codex__codex-reply` with the saved review_thread_id to maintain conversation context.
 
-#### Phase B: Parse Assessment
+#### Phase B: Parse & Prioritize
 
 **CRITICAL: Save the FULL raw response** from the external reviewer verbatim (store in a variable for Phase E). Do NOT discard or summarize — the raw text is the primary record.
 
@@ -97,8 +139,14 @@ Then extract structured fields:
 - **Score** (numeric 1-10)
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
+- **Unsupported claims**
+- **Weakly supported claims**
+- **Missing controls / ablations**
+- **Alternative explanations not ruled out**
+- **Cheapest high-value verification**
+- **Claims that must be weakened now**
 
-**STOP CONDITION**: If score >= 6 AND verdict contains "ready" or "almost" → stop loop, document final state.
+**STOP CONDITION**: Stop only if score >= 8 AND the reviewer explicitly says the work is "ready for submission" (not merely "almost" or broadly positive) AND no primary claim remains flagged as unsupported, weakly supported, or confounded → stop loop, document final state.
 
 #### Human Checkpoint (if enabled)
 
@@ -190,11 +238,23 @@ This is the authoritative record. Do NOT truncate or paraphrase.]
 ### Results
 - [experiment outcomes, if any]
 
+### Claim Status Delta
+| Claim ID | Previous Status | New Reviewer Judgment | New Evidence | Action |
+|----------|-----------------|-----------------------|--------------|--------|
+| C1       | ...             | ...                   | ...          | ...    |
+
+### Logic / Evidence Audit
+- Unsupported causal language:
+- Missing control:
+- Remaining alternative explanation:
+- Claims weakened this round:
+- Claims newly justified this round:
+
 ### Status
 - [continuing to round N+1 / stopping]
 ```
 
-**Write `REVIEW_STATE.json`** with current round, threadId, score, verdict, and any pending experiments.
+**Write `REVIEW_STATE.json`** with current round, review_thread_id, score, verdict, `open_actions`, `completed_actions`, and `stop_reason`.
 
 **Append to `findings.md`** (when `COMPACT = true`): one-line entry per key finding this round:
 
@@ -224,7 +284,7 @@ When loop ends (positive assessment or max rounds):
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
 - ALWAYS use `config: {"model_reasoning_effort": "xhigh"}` for maximum reasoning depth
-- Save threadId from first call, use `mcp__codex__codex-reply` for subsequent rounds
+- Save review_thread_id from first call, use `mcp__codex__codex-reply` for subsequent rounds
 - **Anti-hallucination citations**: When adding references during fixes, NEVER fabricate BibTeX. Use the same DBLP → CrossRef → `[VERIFY]` chain as `/aris-4-4-paper-write`: (1) `curl -s "https://dblp.org/search/publ/api?q=TITLE&format=json"` → get key → `curl -s "https://dblp.org/rec/{key}.bib"`, (2) if not found, `curl -sLH "Accept: application/x-bibtex" "https://doi.org/{doi}"`, (3) if both fail, mark with `% [VERIFY]`. Do NOT generate BibTeX from memory.
 - Be honest — include negative results and failed experiments
 - Do NOT hide weaknesses to game a positive score
@@ -238,7 +298,7 @@ When loop ends (positive assessment or max rounds):
 
 ```
 mcp__codex__codex-reply:
-  threadId: [saved from round 1]
+  threadId: [review_thread_id from state]
   config: {"model_reasoning_effort": "xhigh"}
   prompt: |
     [Round N update]

@@ -20,6 +20,8 @@ Given a broad research direction from the user, systematically generate, validat
 - **MAX_PILOT_IDEAS = 3** — Pilot at most 3 ideas in parallel. Additional ideas are validated on paper only.
 - **MAX_TOTAL_GPU_HOURS = 8** — Total GPU budget for all pilots combined.
 - **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for brainstorming and review. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`).
+- **SELF_EVAL_ROUNDS = 2** — Number of self-evaluation → improvement rounds per idea before ranking.
+- **IDEA_QUALITY_LEDGER = `IDEA_QUALITY_LEDGER.md`** — Track idea quality evolution across rounds.
 
 > 💡 Override via argument, e.g., `/aris-1-4-idea-creator "topic" — pilot budget: 4h per idea, 20h total`.
 
@@ -105,6 +107,96 @@ For each generated idea, quickly evaluate:
    - Is the finding actionable or just interesting?
 
 Eliminate ideas that fail any of these. Typically 8-12 ideas reduce to 4-6.
+
+### Phase 3.5: Self-Evaluation Loop (Autoresearch Pattern)
+
+For each surviving idea, run SELF_EVAL_ROUNDS of self-evaluation and improvement:
+
+#### Round 1: Self-Critique
+
+For each idea, ask the model to critique its own idea:
+
+```
+mcp__codex__codex-reply:
+  threadId: [saved from Phase 2]
+  prompt: |
+    For each idea, perform a SELF-CRITIQUE:
+
+    1. **What's the weakest part of this idea?**
+       - Implementation risk?
+       - Novelty risk?
+       - Result interpretability risk?
+
+    2. **What would a reviewer immediately question?**
+       - "Why not just do X instead?"
+       - "How is this different from Y?"
+
+    3. **Self-score each idea (1-10) on:**
+       - Novelty
+       - Feasibility
+       - Impact potential
+       - Risk-adjusted value
+
+    4. **For ideas scoring < 7 on any dimension, suggest:**
+       - A concrete improvement
+       - An alternative framing
+       - A risk mitigation
+
+    Be brutally honest. Better to kill weak ideas now than waste months.
+```
+
+#### Update Ideas Based on Self-Critique
+
+For each idea:
+1. If self-score < 5 on any dimension: eliminate or merge with another idea
+2. If improvement suggested: update the idea description
+3. Record the self-critique in `IDEA_QUALITY_LEDGER.md`
+
+#### Round 2: Cross-Idea Comparison
+
+Compare ideas against each other:
+
+```
+mcp__codex__codex-reply:
+  threadId: [saved]
+  prompt: |
+    Compare all surviving ideas head-to-head:
+
+    1. Which idea has the HIGHEST upside if it works?
+    2. Which idea has the LOWEST downside if it fails?
+    3. Which idea is most LIKELY to produce a clear result (positive or negative)?
+    4. Which idea would be EASIEST to explain to a reviewer?
+
+    Rank them 1-N with justification.
+
+    For the top idea: what ONE experiment would confirm/disconfirm it?
+```
+
+#### Record Quality Evolution
+
+Write/update `IDEA_QUALITY_LEDGER.md`:
+
+```markdown
+# Idea Quality Ledger
+
+## Round 1 Self-Evaluation
+
+| Idea | Self-Score (Novelty/Feasibility/Impact) | Weakness Identified | Improvement Applied |
+|------|------------------------------------------|---------------------|---------------------|
+| Idea 1 | 7/8/6 | ... | ... |
+| Idea 2 | 5/9/8 | Weak novelty | Merged with Idea 3 |
+
+## Round 2 Cross-Comparison
+
+| Rank | Idea | Rationale | Confirmation Experiment |
+|------|------|-----------|-------------------------|
+| 1 | Idea X | ... | ... |
+
+## Ideas Eliminated During Self-Eval
+| Idea | Reason |
+|------|--------|
+| Idea Y | Self-score < 5 on feasibility |
+```
 
 ### Phase 4: Deep Validation (for top ideas)
 
@@ -213,8 +305,10 @@ Write a structured report to `01_IDEA_REPORT.md` in the project root (fallback r
 
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
+- **Self-evaluation before external validation**: Don't ask others to review ideas until you've critiqued them yourself. This is the core autoresearch pattern.
 - The user provides a DIRECTION, not an idea. Your job is to generate the ideas.
 - Quantity first, quality second: brainstorm broadly, then filter ruthlessly.
+- **Self-critique is mandatory**: Every surviving idea must pass self-evaluation before pilot experiments.
 - A good negative result is just as publishable as a positive one. Prioritize ideas where the answer matters regardless of direction.
 - Don't fall in love with any idea before validating it. Be willing to kill ideas.
 - Always estimate compute cost. An idea that needs 1000 GPU-hours is not actionable for most researchers.

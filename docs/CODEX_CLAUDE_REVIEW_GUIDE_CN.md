@@ -109,8 +109,22 @@ codex -C /path/to/your/project
 
 ## 维护
 
-重新生成这个 overlay 包：
+这个 overlay 目录是 generated artifact。
+
+推荐命令：
+
+```bash
+python3 tools/generate_skill_variants.py --variant codex-claude-review --write
+```
+
+兼容入口（仍可用）：
 
 ```bash
 python3 tools/generate_codex_claude_review_overrides.py
+```
+
+漂移检查：
+
+```bash
+python3 tools/generate_skill_variants.py --check
 ```

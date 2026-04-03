@@ -1,6 +1,8 @@
 ---
 name: aris-1-2-arxiv
-description: "Search, download, and summarize academic papers from arXiv. Use when user says \"search arxiv\", \"download paper\", \"fetch arxiv\", \"arxiv search\", \"get paper pdf\", or wants to find and save papers from arXiv to the local paper library."
+description: Search, download, and summarize academic papers from arXiv. Use when user says "search arxiv", "download paper", "fetch arxiv", "arxiv search", "get paper pdf", or wants to find and save papers from arXiv to the local paper library.
+argument-hint: [query-or-arxiv-id]
+allowed-tools: Bash(*), Read, Write
 ---
 
 # arXiv Paper Search & Download
@@ -42,7 +44,7 @@ SCRIPT=$(python3 -c "
 import pathlib
 candidates = [
     pathlib.Path('tools/aris-1-2-arxiv_fetch.py'),
-    pathlib.Path.home() / '.codex' / 'skills' / 'arxiv' / 'arxiv_fetch.py',
+    pathlib.Path.home() / '.claude' / 'skills' / 'arxiv' / 'arxiv_fetch.py',
 ]
 for p in candidates:
     if p.exists():
@@ -199,4 +201,3 @@ Suggest follow-up skills:
 - Handle both arXiv ID formats: new (`2301.07041`) and old (`cs/0601001`)
 - PAPER_DIR is created automatically if it does not exist
 - If the arXiv API is unreachable, report the error clearly and suggest using `/aris-1-1-research-lit` with `- sources: web` as a fallback
-

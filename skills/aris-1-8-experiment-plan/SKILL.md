@@ -26,6 +26,7 @@ The goal is not to generate a giant benchmark wishlist. The goal is to turn a pr
 - **MAX_CORE_BLOCKS = 5** — Keep the must-run experimental story compact.
 - **MAX_BASELINE_FAMILIES = 3** — Prefer a few strong baselines over many weak ones.
 - **DEFAULT_SEEDS = 3** — Use 3 seeds when stochastic variance matters and budget allows.
+- **CLAIM_TYPES = mechanism | performance | robustness | efficiency | necessity | interpretation** — Tag every planned claim explicitly.
 
 ## Workflow
 
@@ -55,7 +56,9 @@ Before proposing experiments, write down the claims that must be defended.
 Use this structure:
 
 - **Primary claim**: the main mechanism-level contribution
+- **Primary claim type**: mechanism / performance / robustness / efficiency / necessity / interpretation
 - **Supporting claim**: optional, only if it directly strengthens the main paper story
+- **Supporting claim type**: mechanism / performance / robustness / efficiency / necessity / interpretation
 - **Anti-claim to rule out**: e.g. "the gain only comes from more parameters," "the gain only comes from a larger search space," or "the modern component is just decoration"
 - **Minimum convincing evidence**: what would make each claim believable to a strong reviewer?
 
@@ -134,9 +137,9 @@ Use this structure:
 **Date**: [today]
 
 ## Claim Map
-| Claim | Why It Matters | Minimum Convincing Evidence | Linked Blocks |
-|-------|-----------------|-----------------------------|---------------|
-| C1    | ...             | ...                         | B1, B2        |
+| Claim ID | Claim Type | Claim Statement | Rival Explanation to Rule Out | Minimum Convincing Evidence | Linked Blocks | If Negative, Then |
+|----------|------------|-----------------|-------------------------------|-----------------------------|---------------|-------------------|
+| C1       | mechanism  | ...             | gain is from scale only       | ...                         | B1, B2        | weaken to ...     |
 
 ## Paper Storyline
 - Main paper must prove:
@@ -147,6 +150,7 @@ Use this structure:
 
 ### Block 1: [Name]
 - Claim tested:
+- Rival explanation ruled out:
 - Why this block exists:
 - Dataset / split / task:
 - Compared systems:
@@ -154,6 +158,8 @@ Use this structure:
 - Setup details:
 - Success criterion:
 - Failure interpretation:
+- Confounds to watch:
+- Decision if result is null/negative:
 - Table / figure target:
 - Priority: MUST-RUN / NICE-TO-HAVE
 
@@ -181,6 +187,13 @@ Use this structure:
 - [ ] Simplicity is defended
 - [ ] Frontier contribution is justified or explicitly not claimed
 - [ ] Nice-to-have runs are separated from must-run runs
+
+## Verification Checklist
+- [ ] Every primary claim has at least one decisive experiment
+- [ ] Every decisive experiment rules out a named rival explanation
+- [ ] Required ablations isolate novelty rather than just adding variants
+- [ ] Negative outcomes have pre-declared claim revisions
+- [ ] Appendix-only experiments are not carrying core claims
 ```
 
 #### Step 5.2: Write `02_EXPERIMENT_TRACKER.md`

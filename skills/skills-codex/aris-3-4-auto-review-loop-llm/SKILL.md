@@ -14,7 +14,7 @@ Autonomously iterate: review → implement fixes → re-review, until the extern
 ## Constants
 
 - MAX_ROUNDS = 4
-- POSITIVE_THRESHOLD: score >= 6/10, or verdict contains "accept", "sufficient", "ready for submission"
+- POSITIVE_THRESHOLD: score >= 8/10 AND explicit verdict indicates "ready for submission"
 - REVIEW_DOC: `03_AUTO_REVIEW.md` in project root (cumulative log; fallback readers may still consume `AUTO_REVIEW.md`)
 
 ## LLM Configuration
@@ -82,24 +82,57 @@ curl -s "${LLM_BASE_URL}/chat/completions" \
   }'
 ```
 
-## State Persistence (Compact Recovery)
+## Loop Roles
+
+- **Reviewer**: external LLM assessment only.
+- **Optimizer**: implements prioritized fixes.
+- **Judge**: applies deterministic stop criteria from round state.
+
+## Loop Phases
+
+1. Review
+2. Parse & prioritize
+3. Implement
+4. Verify/wait
+5. Judge
+6. Document
+
+## Iteration State (Compact Recovery)
 
 Persist state to `REVIEW_STATE.json` after each round:
 
 ```json
 {
+  "loop_name": "aris-3-4-auto-review-loop-llm",
   "round": 2,
+  "max_rounds": 4,
+  "phase": "document",
   "status": "in_progress",
+  "review_thread_id": "",
   "last_score": 5.0,
   "last_verdict": "not ready",
-  "pending_experiments": [],
-  "timestamp": "2026-03-15T10:00:00"
+  "open_actions": [],
+  "completed_actions": [],
+  "stop_reason": "",
+  "updated_at": "2026-03-15T10:00:00"
 }
 ```
 
 **Write this file at the end of every Phase E** (after documenting the round).
 
-**On completion**, set `"status": "completed"`.
+**On completion**, set `"status": "completed"` with non-empty `stop_reason`.
+
+## Stop Criteria (ordered)
+
+1. success threshold reached
+2. hard max rounds reached
+3. no actionable issues remain
+4. plateau for 2 consecutive rounds
+5. user stop via checkpoint
+
+## Round Output Contract
+
+Each round updates `03_AUTO_REVIEW.md` + `REVIEW_STATE.json` with score, verdict, action deltas, and judge decision (`continue/stop` + `stop_reason`).
 
 ## Workflow
 
@@ -153,7 +186,7 @@ curl -s "${LLM_BASE_URL}/chat/completions" \
 - **Verdict** ("ready" / "almost" / "not ready")
 - **Action items** (ranked list of fixes)
 
-**STOP**: If score >= 6 AND verdict contains "ready/almost"
+**STOP**: Apply stop criteria in order. Success only when score >= 8 AND verdict explicitly indicates "ready for submission".
 
 #### Phase C: Implement Fixes
 

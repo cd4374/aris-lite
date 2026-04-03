@@ -1,6 +1,6 @@
 ---
 name: aris-4-6-auto-paper-improvement-loop
-description: "Autonomously improve a generated paper via GPT-5.4 xhigh review → implement fixes → recompile, for 2 rounds. Use when user says \"改论文\", \"improve paper\", \"论文润色循环\", \"auto improve\", or wants to iteratively polish a generated paper."
+description: "Autonomously improve a generated paper via GPT-5.4 xhigh review → implement fixes → recompile, for up to 3 rounds with a strict quality gate. Use when user says \"改论文\", \"improve paper\", \"论文润色循环\", \"auto improve\", or wants to iteratively polish a generated paper."
 argument-hint: [paper-directory]
 allowed-tools: Bash(*), Read, Write, Edit, Grep, Glob, Agent, mcp__codex__codex, mcp__codex__codex-reply
 ---
@@ -17,9 +17,12 @@ Unlike `/aris-3-1-auto-review-loop` (which iterates on **research** — running 
 
 ## Constants
 
-- **MAX_ROUNDS = 2** — Two rounds of review→fix→recompile. Empirically, Round 1 catches structural issues (4→6/10), Round 2 catches remaining presentation issues (6→7/10). Diminishing returns beyond 2 rounds for writing-only improvements.
+- **MAX_ROUNDS = 3** — Up to three rounds of review→fix→recompile for high-quality closure.
+- **MIN_FINAL_SCORE = 8.0** — Final paper score target before considering the draft submission-ready.
 - **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for paper review.
 - **REVIEW_LOG = `PAPER_IMPROVEMENT_LOG.md`** — Cumulative log of all rounds, stored in paper directory.
+- **ISSUE_LEDGER = `PAPER_ISSUE_LEDGER.md`** — Issue closure ledger stored in the paper directory.
+- **CLOSURE_REQUIRED = true** — Do not stop on score alone if major paper-quality issues remain open.
 - **HUMAN_CHECKPOINT = false** — When `true`, pause after each round's review and present score + weaknesses to the user. The user can approve fixes, provide custom modification instructions, skip specific fixes, or stop early. When `false` (default), runs fully autonomously.
 
 > 💡 Override: `/aris-4-6-auto-paper-improvement-loop "paper/" — human checkpoint: true`
@@ -29,23 +32,60 @@ Unlike `/aris-3-1-auto-review-loop` (which iterates on **research** — running 
 1. **Compiled paper** — `paper/main.pdf` + LaTeX source files
 2. **All section `.tex` files** — concatenated for review prompt
 
-## State Persistence (Compact Recovery)
+## Loop Roles
+
+- **Reviewer**: external paper assessment only (score, weaknesses, required fixes).
+- **Optimizer**: edits manuscript artifacts and addresses prioritized issues.
+- **Judge**: applies deterministic stop criteria from round state + issue ledger.
+
+## Loop Phases
+
+1. Review
+2. Parse & prioritize
+3. Implement
+4. Recompile/verify
+5. Judge
+6. Document
+
+## Iteration State (Compact Recovery)
 
 If the context window fills up mid-loop, Claude Code auto-compacts. To recover, this skill writes `PAPER_IMPROVEMENT_STATE.json` after each round:
 
 ```json
 {
-  "current_round": 1,
-  "threadId": "019ce736-...",
-  "last_score": 6,
+  "loop_name": "aris-4-6-auto-paper-improvement-loop",
+  "round": 1,
+  "max_rounds": 3,
+  "phase": "document",
   "status": "in_progress",
-  "timestamp": "2026-03-13T21:00:00"
+  "review_thread_id": "019ce736-...",
+  "last_score": 6.0,
+  "last_verdict": "not ready",
+  "open_actions": ["fix overclaim in abstract"],
+  "completed_actions": ["resolve notation clash in Sec. 3"],
+  "stop_reason": "",
+  "updated_at": "2026-03-13T21:00:00"
 }
 ```
 
-**On startup**: if `PAPER_IMPROVEMENT_STATE.json` exists with `"status": "in_progress"` AND `timestamp` is within 24 hours, read it + `PAPER_IMPROVEMENT_LOG.md` to recover context, then resume from the next round. Otherwise (file absent, `"status": "completed"`, or older than 24 hours), start fresh.
+**On startup**: if `PAPER_IMPROVEMENT_STATE.json` exists with `"status": "in_progress"` AND `updated_at` is within 24 hours, read it + `PAPER_IMPROVEMENT_LOG.md` to recover context, then resume from the next round. Otherwise (file absent, `"status": "completed"`, or older than 24 hours), start fresh.
 
-**After each round**: overwrite the state file. **On completion**: set `"status": "completed"`.
+**After each round**: overwrite the state file. **On completion**: set `"status": "completed"` and non-empty `stop_reason`.
+
+## Stop Criteria (ordered)
+
+1. success threshold reached (score + explicit ready verdict + no unresolved CRITICAL/MAJOR)
+2. hard max rounds reached
+3. no actionable issues remain
+4. plateau for 2 consecutive rounds
+5. user stop via checkpoint
+
+## Round Output Contract
+
+Each round must update:
+- `PAPER_IMPROVEMENT_LOG.md` (review, fixes, deltas)
+- `PAPER_ISSUE_LEDGER.md` (open/partial/closed issue status)
+- `PAPER_IMPROVEMENT_STATE.json` (judge decision + `stop_reason`)
 
 ## Workflow
 
@@ -90,12 +130,18 @@ mcp__codex__codex:
     5. **For each CRITICAL/MAJOR weakness**: A specific, actionable fix
     6. **Missing References** (if any)
     7. **Verdict**: Ready for submission? Yes / Almost / No
+    8. **Unsupported Claims**
+    9. **Weak Evidence Links**
+    10. **Narrative Gaps**
+    11. **Notation / Self-Containedness Issues**
+    12. **Strongest Safe Claim**
+    13. **Must-Fix-Before-Next-Round Items**
 
     Focus on: theoretical rigor, claims vs evidence alignment, writing clarity,
     self-containedness, notation consistency.
 ```
 
-Save the threadId for Round 2.
+Save the `review_thread_id` for Round 2.
 
 ### Step 2b: Human Checkpoint (if enabled)
 
@@ -119,7 +165,16 @@ Parse user response same as `/aris-3-1-auto-review-loop`: approve / custom instr
 
 ### Step 3: Implement Round 1 Fixes
 
-Parse the review and implement fixes by severity:
+Parse the review and implement fixes by severity.
+
+Before editing, create or update `PAPER_ISSUE_LEDGER.md` with one row per issue:
+- issue ID
+- severity
+- location
+- reviewer concern
+- planned fix
+- closure evidence
+- status: open / partial / closed
 
 **Priority order:**
 1. CRITICAL fixes (assumption mismatches, internal contradictions)
@@ -149,11 +204,11 @@ Verify: 0 undefined references, 0 undefined citations.
 
 ### Step 5: Round 2 Review
 
-Use `mcp__codex__codex-reply` with the saved threadId:
+Use `mcp__codex__codex-reply` with the saved `review_thread_id`:
 
 ```
 mcp__codex__codex-reply:
-  threadId: [saved from Round 1]
+  threadId: [review_thread_id from state]
   model: gpt-5.4
   config: {"model_reasoning_effort": "xhigh"}
   prompt: |
@@ -186,6 +241,20 @@ Same process as Step 3. Typical Round 2 fixes:
 cd paper && latexmk -C && latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
 cp main.pdf main_round2.pdf
 ```
+
+### Step 7b: Decide whether Round 3 is required
+
+Stop only if **all** conditions are met:
+- score >= `MIN_FINAL_SCORE`
+- reviewer verdict is explicitly `Yes` / `ready for submission`
+- no unresolved `CRITICAL` or `MAJOR` issues remain in `PAPER_ISSUE_LEDGER.md`
+
+If any condition fails, continue to Round 3.
+
+### Step 7c: Round 3 (if required)
+
+Repeat the same review → fix → recompile pattern used in Round 2.
+Save the output as `main_round3.pdf`.
 
 ### Step 8: Format Check
 
@@ -235,6 +304,7 @@ Create `PAPER_IMPROVEMENT_LOG.md` in the paper directory:
 | Round 0 (original) | X/10 | No/Almost/Yes | Baseline |
 | Round 1 | Y/10 | No/Almost/Yes | [summary of fixes] |
 | Round 2 | Z/10 | No/Almost/Yes | [summary of fixes] |
+| Round 3 | W/10 | No/Almost/Yes | [summary of fixes] |
 
 ## Round 1 Review & Fixes
 
@@ -249,6 +319,19 @@ Create `PAPER_IMPROVEMENT_LOG.md` in the paper directory:
 1. [Fix description]
 2. [Fix description]
 ...
+
+### Issue Status Delta
+| Issue ID | Previous Status | Fix Applied | Closure Evidence | New Status |
+|----------|-----------------|-------------|------------------|------------|
+| I1       | open            | ...         | ...              | closed     |
+
+### Claim Status Delta
+| Claim | Previous Status | New Status | Reason |
+|-------|-----------------|-----------|--------|
+| C1    | overstated      | supported | ...    |
+
+### Unresolved Blockers
+- [remaining CRITICAL / MAJOR issues]
 
 ## Round 2 Review & Fixes
 
@@ -267,7 +350,8 @@ Create `PAPER_IMPROVEMENT_LOG.md` in the paper directory:
 ## PDFs
 - `main_round0_original.pdf` — Original generated paper
 - `main_round1.pdf` — After Round 1 fixes
-- `main_round2.pdf` — Final version after Round 2 fixes
+- `main_round2.pdf` — After Round 2 fixes
+- `main_round3.pdf` — Final version after Round 3 fixes (if Round 3 runs)
 ```
 
 ### Step 9: Summary
@@ -277,6 +361,9 @@ Report to user:
 - Number of CRITICAL/MAJOR/MINOR issues fixed per round
 - Final page count
 - Remaining issues (if any)
+- Strongest safe claim after the final round
+
+Do not stop on score alone if any CRITICAL/MAJOR issue remains open in `PAPER_ISSUE_LEDGER.md` or any primary claim remains unsupported / overstated.
 
 ### Feishu Notification (if configured)
 
@@ -291,8 +378,9 @@ After each round's review AND at final completion, check `~/.claude/feishu.json`
 paper/
 ├── main_round0_original.pdf    # Original
 ├── main_round1.pdf             # After Round 1
-├── main_round2.pdf             # After Round 2 (final)
-├── main.pdf                    # = main_round2.pdf
+├── main_round2.pdf             # After Round 2
+├── main_round3.pdf             # After Round 3 (if required)
+├── main.pdf                    # Final latest version
 └── PAPER_IMPROVEMENT_LOG.md    # Full review log with scores
 ```
 

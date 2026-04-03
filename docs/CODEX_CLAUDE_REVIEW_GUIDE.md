@@ -109,8 +109,22 @@ No special project config file is required for this path.
 
 ## Maintenance
 
-Regenerate the overlay package with:
+This overlay is a generated artifact.
+
+Preferred command:
+
+```bash
+python3 tools/generate_skill_variants.py --variant codex-claude-review --write
+```
+
+Compatibility wrapper (still supported):
 
 ```bash
 python3 tools/generate_codex_claude_review_overrides.py
+```
+
+Drift check:
+
+```bash
+python3 tools/generate_skill_variants.py --check
 ```

@@ -1,6 +1,6 @@
 ---
 name: aris-2-1-run-experiment
-description: Deploy and run ML experiments on local or remote GPU servers. Use when user says "run experiment", "deploy to server", "跑实验", or needs to launch training jobs.
+description: Deploy and run ML experiments on local or remote GPU servers. Validates config before launch, detects launch failures, and auto-retries with fixes. Use when user says "run experiment", "deploy to server", "跑实验", or needs to launch training jobs.
 argument-hint: [experiment-description]
 allowed-tools: Bash(*), Read, Grep, Glob, Edit, Write, Agent
 ---
@@ -8,6 +8,13 @@ allowed-tools: Bash(*), Read, Grep, Glob, Edit, Write, Agent
 # Run Experiment
 
 Deploy and run ML experiment: $ARGUMENTS
+
+## Constants
+
+- **MAX_LAUNCH_RETRIES = 2** — Retry failed launches up to 2 times with automatic fixes.
+- **CONFIG_VALIDATION = true** — Validate experiment config before launch (check for common issues).
+- **LAUNCH_VERIFICATION_TIMEOUT = 30** — Seconds to wait before verifying launch success.
+- **AUTO_FIX_LAUNCH_FAILURES = true** — Automatically fix common launch errors (missing file, wrong path, env issue).
 
 ## Workflow
 
@@ -24,6 +31,58 @@ Read the project's `CLAUDE.md` to determine the experiment environment:
    - If `vast-instances.json` exists and has a running instance → use that instance
    - If no running instance → call `/aris-2-5-vast-gpu provision` which analyzes the task, presents cost-optimized GPU options, and rents the user's choice
 2. If no server info is found in `CLAUDE.md`, ask the user.
+
+### Step 1.5: Configuration Validation (when CONFIG_VALIDATION = true)
+
+**Skip entirely if `CONFIG_VALIDATION` is `false`.**
+
+Before deploying, validate the experiment configuration:
+
+1. **Script exists check**:
+   ```bash
+   # Check if training script exists locally
+   ls train.py main.py run_experiment.py 2>/dev/null || find . -name "*.py" -path "*train*" 2>/dev/null | head -5
+   ```
+
+2. **Config file validation** (if using config file):
+   ```bash
+   # Check config syntax
+   python3 -c "import yaml; yaml.safe_load(open('config.yaml'))" 2>&1
+   ```
+
+3. **Dependency check**:
+   ```bash
+   # Check if key dependencies are importable
+   python3 -c "import torch; import transformers; print('OK')" 2>&1
+   ```
+
+4. **Hyperparameter sanity check**:
+   - Learning rate: typical range 1e-5 to 1e-3 (flag if outside)
+   - Batch size: reasonable for GPU memory (flag if > 256 for single GPU)
+   - Epochs: > 0
+   - Data path: exists or clearly specified
+
+5. **Output path check**:
+   - Results directory specified or will be created
+   - Log file path specified
+
+**If validation fails**:
+
+```
+⚠️ CONFIG VALIDATION FAILED
+
+Issue: [specific problem]
+Location: [file/parameter]
+Suggested fix: [concrete action]
+
+Fixing before launch...
+```
+
+Auto-fix common issues:
+- Missing script → search for correct path, ask if multiple candidates
+- Syntax error in config → fix YAML indentation, escape special chars
+- Missing dependency → suggest pip install command
+- Unreasonable hyperparams → suggest typical values based on model/dataset
 
 ### Step 2: Pre-flight Check
 
@@ -181,6 +240,76 @@ ssh -p <PORT> root@<HOST> "screen -ls"
 
 **Local:**
 Check process is running and GPU is allocated.
+
+### Step 5.5: Launch Failure Detection and Auto-Retry
+
+**Wait LAUNCH_VERIFICATION_TIMEOUT seconds, then verify the experiment actually started.**
+
+```bash
+# Wait and check
+sleep LAUNCH_VERIFICATION_TIMEOUT
+
+# Check screen session has content (not just empty shell)
+ssh <server> "screen -S <exp_name> -X hardcopy /tmp/check.txt && wc -l /tmp/check.txt"
+```
+
+**Launch failure detection:**
+
+| Failure Type | Detection | Auto-Fix |
+|--------------|-----------|----------|
+| Empty screen | 0 lines in hardcopy | Check log for error, retry |
+| Immediate crash | "Error" in first 10 lines | Parse error, fix config/code |
+| Python import error | "ModuleNotFoundError" | Install missing package |
+| File not found | "FileNotFoundError" | Check path, sync code |
+| CUDA not available | "CUDA not available" | Check GPU assignment |
+| Wrong conda env | "conda: command not found" | Fix conda path |
+
+**If launch failure detected**:
+
+```
+⚠️ LAUNCH FAILURE: [type]
+
+Experiment: [name]
+Error: [first error line]
+Diagnosis: [likely cause]
+
+Auto-retry attempt 1/MAX_LAUNCH_RETRIES...
+```
+
+**Auto-fix and retry** (when AUTO_FIX_LAUNCH_FAILURES = true):
+
+1. Parse the specific error
+2. Apply appropriate fix:
+   - Missing module → `pip install <module>` on server
+   - File not found → sync correct path
+   - Conda issue → fix conda activation command
+3. Re-launch with fixed command
+4. Verify again
+
+**If MAX_LAUNCH_RETRIES exhausted**:
+
+```
+❌ LAUNCH FAILED after N retries
+
+Error: [original error]
+Fixes tried: [list]
+All failed.
+
+Requires manual fix. Likely cause: [diagnosis]
+Suggested investigation: [specific action]
+
+Escalating to user.
+```
+
+**Record launch status in `LAUNCH_LOG.md`**:
+
+```markdown
+| Timestamp | Experiment | Status | Error (if failed) | Fix Applied | Retry # |
+|-----------|------------|--------|-------------------|-------------|---------|
+| 2026-04-03 10:00 | exp_baseline | SUCCESS | — | — | 0 |
+| 2026-04-03 10:05 | exp_method_a | FAILED | ModuleNotFoundError | pip install transformers | 1 |
+| 2026-04-03 10:10 | exp_method_a | SUCCESS | — | — | 1 |
+```
 
 ### Step 6: Feishu Notification (if configured)
 

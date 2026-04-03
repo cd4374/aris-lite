@@ -96,7 +96,7 @@ Recommended: Idea 1. Shall I proceed with implementation?
 
 **If AUTO_PROCEED=true:** Present the top ideas, wait 10 seconds for user input. If no response, auto-select the #1 ranked idea (highest pilot signal + novelty confirmed) and proceed to Stage 2. Log: `"AUTO_PROCEED: selected Idea 1 — [title]"`.
 
-> ⚠️ **This gate waits for user confirmation when AUTO_PROCEED=false.** When `true`, it auto-selects the top idea after presenting results. The rest of the pipeline (Stages 2-4) is expensive (GPU time + multiple review rounds), so set `AUTO_PROCEED=false` if you want to manually choose which idea to pursue.
+> ⚠️ **This gate waits for user confirmation when AUTO_PROCEED=false.** When `true`, it auto-selects the top idea after presenting results. The rest of the pipeline (Stages 2-3) is expensive (GPU time + multiple review rounds), so set `AUTO_PROCEED=false` if you want to manually choose which idea to pursue.
 
 ### Stage 2: Experiment Bridge (Workflow 1.5)
 
@@ -126,15 +126,17 @@ Once initial results are in, start the autonomous improvement loop:
 /aris-3-1-auto-review-loop "$ARGUMENTS — [chosen idea title]"
 ```
 
-**What this does (up to 4 rounds):**
-1. GPT-5.4 xhigh reviews the work (score, weaknesses, minimum fixes)
-2. Claude Code implements fixes (code changes, new experiments, reframing)
-3. Deploy fixes, collect new results
-4. Re-review → repeat until score ≥ 6/10 or 4 rounds reached
+**Loop contract (up to 4 rounds):**
+1. **Reviewer**: GPT-5.4 xhigh reviews the work (score, weaknesses, minimum fixes)
+2. **Optimizer**: Claude Code implements prioritized fixes (code changes, new experiments, reframing)
+3. **Verify/Wait**: deploy fixes, collect new results
+4. **Judge**: decide continue/stop from structured state + stop criteria; then repeat if continuing
 
-**Output:** `03_AUTO_REVIEW.md` with full review history and final assessment.
+**Stop semantics:** success requires score ≥ 8/10, explicit `ready for submission` verdict, and no primary unsupported claim; otherwise continue until max rounds or other stop criteria.
 
-### Stage 5: Final Summary
+**Output:** `03_AUTO_REVIEW.md` + `REVIEW_STATE.json` (with round status and stop reason).
+
+### Stage 4: Final Summary
 
 After the auto-review loop completes, write a final status report:
 
@@ -167,10 +169,11 @@ After the auto-review loop completes, write a final status report:
 - **Large file handling**: If the Write tool fails due to file size, immediately retry using Bash (`cat << 'EOF' > file`) to write in chunks. Do NOT ask the user for permission — just do it silently.
 
 - **Human checkpoint after Stage 1 is controlled by AUTO_PROCEED.** When `false`, do not proceed without user confirmation. When `true`, auto-select the top idea after presenting results.
-- **Stages 2-4 can run autonomously** once the user confirms the idea. This is the "sleep and wake up to results" part.
-- **If Stage 4 ends at round 4 without positive assessment**, stop and report remaining issues. Do not loop forever.
+- **Stages 2-3 can run autonomously** once the user confirms the idea. This is the "sleep and wake up to results" part.
+- **If Stage 3 ends at round 4 without positive assessment**, stop and report remaining issues. Do not loop forever.
 - **Budget awareness**: Track total GPU-hours across the pipeline. Flag if approaching user-defined limits.
 - **Documentation**: Every stage updates its own output file. The full history should be self-contained.
+- **Final quality bar is strict**: only treat work as submission-ready when review and gate both confirm paper rigor, technical correctness, content richness (not shallow), and reproducibility evidence.
 - **Fail gracefully**: If any stage fails (no good ideas, experiments crash, review loop stuck), report clearly and suggest alternatives rather than forcing forward.
 
 ## Typical Timeline

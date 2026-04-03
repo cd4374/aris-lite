@@ -31,6 +31,9 @@ Generate all figures and tables for a paper based on: **$ARGUMENTS**
 - **FONT_SIZE = 10** — Base font size (matches typical conference body text)
 - **FIG_DIR = `figures/`** — Output directory for generated figures
 - **REVIEWER_MODEL = `gpt-5.4`** — Model used via Codex MCP for figure quality review.
+- **MAX_ROUNDS = 2** — Maximum review→fix→re-review rounds.
+- **FIGURE_ISSUE_LEDGER = `figures/FIGURE_ISSUE_LEDGER.md`** — Issue closure ledger for figures.
+- **CLOSURE_REQUIRED = true** — Do not stop on score alone if major figure-quality issues remain open.
 
 ## Inputs
 
@@ -199,7 +202,11 @@ For each figure, output the LaTeX code to include it:
 
 Save all snippets to `figures/latex_includes.tex` for easy copy-paste into the paper. If a manual figure is unresolved, emit a clearly marked placeholder include/snippet and capture the blocker in `05_FIGURE_MANIFEST.md`.
 
-### Step 7: Figure Quality Review with REVIEWER_MODEL
+### Step 7: Figure Quality Review Loop
+
+Iterate review → fix → re-review until figures pass quality gate or MAX_ROUNDS reached.
+
+#### Round 1 Review
 
 Send figure descriptions and captions to GPT-5.4 for review:
 
@@ -214,15 +221,128 @@ mcp__codex__codex:
     1. Is the caption informative and self-contained?
     2. Does the figure type match the data being shown?
     3. Is the comparison fair and clear?
-    4. Any missing baselines or ablations?
-    5. Would a different visualization be more effective?
+    4. Which claim ID does this figure support?
+    5. Is the comparison sufficient to support that claim?
+    6. Does the caption overstate beyond the evidence shown?
+    7. Any missing baselines or ablations?
+    8. Would a different visualization be more effective?
+    9. Are there visual quality issues (fonts, colors, labels, legend)?
+    10. Is the figure print-ready (grayscale-safe, proper sizing)?
+
+    Also provide:
+    - **Overall Figure Quality Score** (1-10)
+    - **CRITICAL issues** (claim misalignment, missing comparison, severe visual flaw)
+    - **MAJOR issues** (caption weakness, minor visual problems)
+    - **MINOR issues** (polish suggestions)
+    - **Must-fix-before-next-round items**
+    - **Verdict**: Ready for paper? Yes / Almost / No
 
     [list all figures with captions and descriptions]
 ```
 
-### Step 8: Quality Checklist
+Save the threadId for subsequent rounds.
 
-Before finishing, verify each figure (from pedrohcgs/claude-code-my-workflow):
+#### Parse and Record Issues
+
+Extract structured fields from the review:
+- **Score** (1-10)
+- **Verdict** (ready / almost / not ready)
+- **Issues by figure** with severity
+
+Create or update `FIGURE_ISSUE_LEDGER.md`:
+
+```markdown
+# Figure Issue Ledger
+
+## Round 1 Issues
+
+| Issue ID | Figure | Severity | Issue | Fix Planned | Status |
+|----------|--------|----------|-------|-------------|--------|
+| F1-1 | Fig 2 | CRITICAL | Missing baseline X | Add baseline | open |
+| F1-2 | Fig 3 | MAJOR | Caption overclaims | Soften wording | open |
+
+## Issue Status Delta
+| Issue ID | Previous Status | Fix Applied | New Status |
+|----------|-----------------|-------------|------------|
+| ... | ... | ... | ... |
+```
+
+#### Implement Fixes
+
+For each open issue:
+1. Regenerate the affected figure with the fix
+2. Update the LaTeX snippet if caption changed
+3. Update the issue status in the ledger
+
+Priority order:
+1. CRITICAL fixes (claim misalignment, missing comparison)
+2. MAJOR fixes (caption issues, visual quality)
+3. MINOR fixes (polish)
+
+#### Round 2+ Review (if needed)
+
+Use `mcp__codex__codex-reply` with the saved threadId:
+
+```
+mcp__codex__codex-reply:
+  threadId: [saved from Round 1]
+  model: gpt-5.4
+  config: {"model_reasoning_effort": "xhigh"}
+  prompt: |
+    [Round N update]
+
+    Since your last review, we have fixed:
+    1. [Fix 1]: [description]
+    2. [Fix 2]: [description]
+
+    Please re-score and re-assess. Same format:
+    Score, Issues by severity, Must-fix items, Verdict.
+```
+
+Update the issue ledger with new status delta.
+
+#### Stop Condition
+
+Stop when:
+- Score >= 7 AND verdict is "ready" AND no CRITICAL issues remain open
+- OR MAX_ROUNDS reached
+
+Do not stop on score alone if any CRITICAL figure issue remains open.
+
+### Step 8: Final Figure Quality Report
+
+After the review loop completes, write a summary:
+
+```markdown
+# Figure Generation Report
+
+**Date**: [today]
+**Rounds**: N / MAX_ROUNDS
+**Final Score**: X / 10
+**Final Verdict**: Ready / Almost / Not ready
+
+## Score Progression
+| Round | Score | Key Changes |
+|-------|-------|-------------|
+| Round 1 | X/10 | [summary of fixes] |
+| Round 2 | Y/10 | [summary of fixes] |
+
+## Issue Closure Summary
+| Severity | Total | Closed | Remaining |
+|----------|-------|--------|-----------|
+| CRITICAL | X | Y | Z |
+| MAJOR | X | Y | Z |
+| MINOR | X | Y | Z |
+
+## Remaining Issues
+- [list of unresolved issues]
+
+## Figures Generated
+- [list of auto-generated figures]
+- [list of manual figures tracked in manifest]
+```
+
+### Step 9: Quality Checklist
 
 - [ ] Font size readable at printed paper size (not too small)
 - [ ] Colors distinguishable in grayscale (print-friendly)
@@ -235,6 +355,9 @@ Before finishing, verify each figure (from pedrohcgs/claude-code-my-workflow):
 - [ ] No matplotlib default title (remove `plt.title` for publications)
 - [ ] Serif font matches paper body text (Times / Computer Modern)
 - [ ] Colorblind-accessible (if using colorblind palette)
+- [ ] Every figure has a linked claim ID
+- [ ] Caption wording does not overclaim beyond shown evidence
+- [ ] Hero figure is consistent with the strongest safe claim
 
 ## Output
 
@@ -248,7 +371,9 @@ figures/
 ├── fig2_training_curves.pdf
 ├── fig3_comparison.pdf
 ├── latex_includes.tex           # LaTeX snippets for all figures
-└── TABLE_*.tex                  # standalone table LaTeX files
+├── TABLE_*.tex                  # standalone table LaTeX files
+├── FIGURE_ISSUE_LEDGER.md       # issue closure ledger
+└── FIGURE_QUALITY_REPORT.md     # final quality report
 ```
 
 ## Key Rules
@@ -263,6 +388,21 @@ figures/
 - **No titles inside figures** — captions are in LaTeX only
 - **Comparison tables count as figures** — generate them as standalone .tex files
 - **Manual figures must be tracked explicitly** — unresolved high-priority manual figures go into `05_FIGURE_MANIFEST.md`; do not just warn and move on without recording status
+- **Figure issues integrate with paper improvement loop** — `FIGURE_ISSUE_LEDGER.md` should be inspected by `/aris-4-6-auto-paper-improvement-loop` and `/aris-4-8-submission-gate`
+- **Closure matters more than score** — do not stop on score alone if CRITICAL figure issues remain open
+
+## Integration with Paper Improvement Loop
+
+The figure issue ledger (`FIGURE_ISSUE_LEDGER.md`) integrates with the main paper quality workflow:
+
+1. **During `/aris-4-6-auto-paper-improvement-loop`**: The paper reviewer should also check for unresolved figure issues flagged in the ledger.
+
+2. **During `/aris-4-8-submission-gate`**: The submission gate should verify:
+   - No unresolved CRITICAL figure issues in the ledger
+   - All HIGH-priority figures have been generated or explicitly marked as manual-existing
+   - Figure quality report exists
+
+3. **Cross-referencing**: Each figure's linked claim ID should match the Claims-Evidence Matrix in `05_PAPER_PLAN.md`.
 
 ## Figure Type Reference
 

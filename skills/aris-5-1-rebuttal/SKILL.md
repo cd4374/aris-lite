@@ -42,6 +42,7 @@ Workflow 4:   rebuttal (post-submission external reviews)
 - **RESPONSE_MODE = `TEXT_ONLY`** — v1 default.
 - **REVIEWER_MODEL = `gpt-5.4`** — Used via Codex MCP for internal stress-testing.
 - **MAX_INTERNAL_DRAFT_ROUNDS = 2** — draft → lint → revise.
+- **MAX_SELF_CRITIQUE_ROUNDS = 1** — Self-critique before external stress test (autoresearch pattern).
 - **MAX_STRESS_TEST_ROUNDS = 1** — One Codex MCP critique round.
 - **MAX_FOLLOWUP_ROUNDS = 3** — per reviewer thread.
 - **AUTO_EXPERIMENT = false** — When `true`, automatically invoke `/aris-0-3-experiment-bridge` to run supplementary experiments when the strategy plan identifies reviewer concerns that require new empirical evidence. When `false` (default), pause and present the evidence gap to the user for manual handling.
@@ -174,6 +175,47 @@ Run all lints:
 4. **Tone** — flag aggressive/submissive/evasive phrases
 5. **Consistency** — no contradictions across reviewer replies
 6. **Limit** — exact character count, compress if over (redundancy → friendly → opener → wording, never drop critical answers)
+
+### Phase 5.5: Self-Critique (Autoresearch Pattern)
+
+Before external stress test, run internal self-critique:
+
+1. **Read the draft as if you were a hostile meta-reviewer**:
+   - Which paragraph is weakest?
+   - Which claim would you attack first?
+   - Where does the tone shift from confident to defensive?
+
+2. **Self-critique prompts**:
+   - "What wouldReviewer X immediately counter?"
+   - "Where am I asserting without evidence?"
+   - "Am I conceding too much / too little on point Y?"
+   - "Is my opener actually compelling or generic?"
+
+3. **Record self-critique in `rebuttal/SELF_CRITIQUE.md`**:
+   ```markdown
+   # Self-Critique
+
+   ## Weakest Paragraphs
+   | Para # | Issue | Severity | Fix Applied |
+   |--------|-------|----------|-------------|
+   | X | assertion without evidence | major | added citation |
+   | Y | defensive tone | minor | rephrased |
+
+   ## Anticipated Counter-Arguments
+   - R1 would counter: "..." → our prep: "..."
+   - R2 would counter: "..." → our prep: "..."
+
+   ## Self-Score
+   - Coverage: X/10
+   - Evidence grounding: X/10
+   - Tone balance: X/10
+   - Meta-reviewer readiness: X/10
+
+   ## Fixes Applied Before Stress Test
+   [list specific edits made]
+   ```
+
+4. If self-score < 7 on any dimension, revise before proceeding to Phase 6.
 
 ### Phase 6: Codex MCP Stress Test
 

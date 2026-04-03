@@ -1,6 +1,8 @@
 ---
 name: aris-1-5-novelty-check
-description: "Verify research idea novelty against recent literature. Use when user says \"\u67e5\u65b0\", \"novelty check\", \"\u6709\u6ca1\u6709\u4eba\u505a\u8fc7\", \"check novelty\", or wants to verify a research idea is novel before implementing."
+description: Verify research idea novelty against recent literature. Use when user says "查新", "novelty check", "有没有人做过", "check novelty", or wants to verify a research idea is novel before implementing.
+argument-hint: [method-or-idea-description]
+allowed-tools: WebSearch, WebFetch, Grep, Read, Glob, mcp__codex__codex, mcp__codex__codex-reply
 ---
 
 # Novelty Check Skill
@@ -9,11 +11,13 @@ Check whether a proposed method/idea has already been done in the literature: **
 
 ## Constants
 
-- REVIEWER_MODEL = `gpt-5.4` — Model used via a secondary Codex agent. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`)
+- REVIEWER_MODEL = `gpt-5.4` — Model used via Codex MCP. Must be an OpenAI model (e.g., `gpt-5.4`, `o3`, `gpt-4o`)
+- MAX_SEARCH_ROUNDS = 3 — Maximum iterations of search → verify → refine
+- NOVELTY_THRESHOLD = 7 — Ideas scoring < 7/10 require additional verification or refinement
 
 ## Instructions
 
-Given a method description, systematically verify its novelty:
+Given a method description, systematically verify its novelty through iterative refinement:
 
 ### Phase A: Extract Key Claims
 1. Read the user's method description
@@ -39,9 +43,9 @@ For EACH core claim, search using ALL available sources:
 3. **Read abstracts**: For each potentially overlapping paper, WebFetch its abstract and related work section
 
 ### Phase C: Cross-Model Verification
-Call REVIEWER_MODEL via `spawn_agent` (`spawn_agent`) with xhigh reasoning:
+Call REVIEWER_MODEL via Codex MCP (`mcp__codex__codex`) with xhigh reasoning:
 ```
-reasoning_effort: xhigh
+config: {"model_reasoning_effort": "xhigh"}
 ```
 Prompt should include:
 - The proposed method description
@@ -49,6 +53,7 @@ Prompt should include:
 - Ask: "Is this method novel? What is the closest prior work? What is the delta?"
 
 ### Phase D: Novelty Report
+
 Output a structured report:
 
 ```markdown
@@ -76,10 +81,69 @@ Output a structured report:
 [How to frame the contribution to maximize novelty perception]
 ```
 
+### Phase E: Iterative Refinement (Autoresearch Pattern)
+
+If novelty score < NOVELTY_THRESHOLD:
+
+#### Round 1: Refine the Idea
+
+1. **Identify the delta**: What specific aspect could be changed to increase novelty?
+   - Different problem setting?
+   - Different mechanism?
+   - Different evaluation?
+
+2. **Generate refined variants**:
+```
+mcp__codex__codex-reply:
+  threadId: [saved]
+  prompt: |
+    The novelty score was X/10, which is below threshold.
+
+    Generate 2-3 REFINED variants of this idea that would score higher:
+
+    1. Each variant should address a specific overlap issue
+    2. Each variant should be testable with similar resources
+    3. Explain why each variant would be more novel
+
+    Original idea: [description]
+    Overlap issues: [from Phase C]
+```
+
+3. **Quick-check refined variants**: For each variant, do a targeted search (2-3 queries) to see if it exists.
+
+4. **Re-evaluate**: If a refined variant shows promise, run Phase C again with the variant.
+
+#### Round 2+: Repeat Until Threshold Met or MAX_SEARCH_ROUNDS Reached
+
+- Track search queries and results to avoid repeating
+- Each round should focus on a different aspect (method, setting, evaluation)
+- Document all variants tried and their outcomes
+
+#### Final Report Update
+
+Add to the novelty report:
+
+```markdown
+## Iterative Refinement Log
+
+| Round | Variant | Search Queries | Result | Novelty Score |
+|-------|---------|----------------|--------|---------------|
+| 1 | Original | ... | Found overlap with X | 5/10 |
+| 1 | Refined A | ... | No direct overlap | 7/10 |
+| 2 | Refined A+ | ... | Confirmed novel | 8/10 |
+
+## Recommended Variant
+[Best-scoring variant or original if unrefined]
+
+## Remaining Risks
+[Even with refinement, what could a reviewer still object to?]
+```
+
 ### Important Rules
 - Be BRUTALLY honest — false novelty claims waste months of research time
 - "Applying X to Y" is NOT novel unless the application reveals surprising insights
 - Check both the method AND the experimental setting for novelty
 - If the method is not novel but the FINDING would be, say so explicitly
 - Always check the most recent 6 months of arXiv — the field moves fast
-
+- **Iterate when score is low**: Don't stop at one negative result — refine and re-check
+- **Document all variants**: Future searches should not repeat failed queries
