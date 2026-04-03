@@ -83,7 +83,45 @@ Recommended canonical flow:
 - paper writing: `04_NARRATIVE_REPORT.md` preferred, fallback to legacy narrative report
 - submission gate: `paper/main.pdf`, `05_PAPER_PLAN.md`, `03_CLAIMS_FROM_RESULTS.md`
 
-### Step 5: Write the health report
+### Step 5: Check skill availability
+
+Build a stage-aware required skill set and verify each required skill is available.
+
+Canonical required sets:
+- full pipeline:
+  - `aris-0-0-environment-healthcheck`
+  - `aris-0-2-idea-discovery`
+  - `aris-0-3-experiment-bridge`
+  - `aris-3-1-auto-review-loop`
+  - `aris-4-7-paper-writing`
+  - `aris-4-8-submission-gate`
+- idea discovery:
+  - `aris-1-1-research-lit`
+  - `aris-1-4-idea-creator`
+  - `aris-1-5-novelty-check`
+  - `aris-1-6-research-review`
+  - `aris-1-9-research-refine-pipeline`
+- experiment bridge:
+  - `aris-2-1-run-experiment`
+  - `aris-2-2-monitor-experiment`
+- paper writing:
+  - `aris-4-1-paper-plan`
+  - `aris-4-2-paper-figure`
+  - `aris-4-4-paper-write`
+  - `aris-4-5-paper-compile`
+  - `aris-4-6-auto-paper-improvement-loop`
+
+For each required skill, verify:
+- directory exists under active skill pack (`skills/` at minimum; `skills/skills-codex/` when Codex pack is being used)
+- `SKILL.md` exists
+- frontmatter `name` matches expected canonical name
+- name prefix is valid: `aris-` or `aris-common-`
+
+Status policy:
+- missing required skill => `FAIL` and mark report status as `blocked`
+- optional reviewer overlay pack missing => `WARN`
+
+### Step 6: Write the health report
 
 ```md
 # [00] Environment Healthcheck
@@ -113,6 +151,13 @@ Recommended canonical flow:
 |---------|--------|-------|
 | 02_EXPERIMENT_PLAN.md | PASS/FAIL | ... |
 | 04_NARRATIVE_REPORT.md | PASS/FAIL | ... |
+
+## Skill Availability
+| Skill | Required By Stage | Pack | Status | Notes |
+|------|--------------------|------|--------|-------|
+| aris-0-2-idea-discovery | full pipeline | skills | PASS/WARN/FAIL | ... |
+| aris-3-1-auto-review-loop | full pipeline | skills-codex (if used) | PASS/WARN/FAIL | ... |
+| aris-4-7-paper-writing | paper writing | skills | PASS/WARN/FAIL | ... |
 
 ## Blocking Issues
 - [issue list]
