@@ -226,6 +226,16 @@ python <script> <args> 2>&1 | tee <log_file>
 
 For local long-running jobs, use `run_in_background: true` to keep the conversation responsive.
 
+### Step 4.5: Optional Watchdog Registration (Recommended)
+
+After each long-running training/download task is launched, you can register it to `tools/watchdog.py` for persistent health checks:
+
+```bash
+python3 tools/watchdog.py --register '{"name":"exp01","type":"training","session":"exp01","session_type":"screen","gpus":[0,1]}'
+```
+
+For download tasks, include `target_path` and use `type: "download"`.
+
 ### Step 5: Verify Launch
 
 **Remote (SSH):**
@@ -311,13 +321,7 @@ Escalating to user.
 | 2026-04-03 10:10 | exp_method_a | SUCCESS | — | — | 1 |
 ```
 
-### Step 6: Feishu Notification (if configured)
-
-After deployment is verified, check `~/.claude/feishu.json`:
-- Send `experiment_done` notification: which experiments launched, which GPUs, estimated time
-- If config absent or mode `"off"`: skip entirely (no-op)
-
-### Step 7: Auto-Destroy Vast.ai Instance (when `gpu: vast` and `auto_destroy: true`)
+### Step 6: Auto-Destroy Vast.ai Instance (when `gpu: vast` and `auto_destroy: true`)
 
 **Skip this step if not using vast.ai or `auto_destroy` is `false`.**
 

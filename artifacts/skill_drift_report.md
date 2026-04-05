@@ -1,8 +1,8 @@
 # skills vs skills-codex drift report
 
-- base skills (`skills/aris-*`): **45**
-- codex skills (`skills/skills-codex/aris-*`): **42**
-- exact-match skills: **42**
+- base skills (`skills/aris-*`): **42**
+- codex skills (`skills/skills-codex/aris-*`): **39**
+- exact-match skills: **39**
 - content-diff skills: **0**
 
 ## Drift summary

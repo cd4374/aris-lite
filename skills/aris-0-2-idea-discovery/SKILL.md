@@ -20,6 +20,16 @@ This skill chains sub-skills into a single automated pipeline:
 
 Each phase builds on the previous one's output. The final deliverables are a validated `01_IDEA_REPORT.md` with ranked ideas, plus a refined proposal (`01_FINAL_PROPOSAL.md`) and experiment plan (`02_EXPERIMENT_PLAN.md`) for the top idea. Prefer these canonical prefixed artifacts throughout the workflow; fall back to legacy names only when the canonical file is absent.
 
+## Artifact Discipline
+
+When this workflow completes, ensure these files are current before handoff:
+- `01_IDEA_REPORT.md`
+- `01_FINAL_PROPOSAL.md`
+- `02_EXPERIMENT_PLAN.md`
+- `02_EXPERIMENT_TRACKER.md`
+
+If user requests compact context, keep `IDEA_CANDIDATES.md` synchronized with the selected idea and update `CLAUDE.md` pipeline status accordingly.
+
 ## Constants
 
 - **PILOT_MAX_HOURS = 2** — Skip any pilot experiment estimated to take > 2 hours per GPU. Flag as "needs manual pilot" in the report.
@@ -414,7 +424,6 @@ This phase enables continuous improvement of the idea discovery process itself, 
 - **Empirical signal > theoretical appeal.** An idea with a positive pilot outranks a "sounds great" idea without evidence.
 - **Document everything.** Dead ends are just as valuable as successes for future reference.
 - **Be honest with the reviewer.** Include negative results and failed pilots in the review prompt.
-- **Feishu notifications are optional.** If `~/.claude/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final report. If absent/off, skip silently.
 
 ## Composing with Workflow 2
 

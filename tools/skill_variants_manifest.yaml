@@ -2,7 +2,7 @@
   "version": 1,
   "metadata": {
     "owner": "skills-variants",
-    "generated_policy": "skills/skills-codex-claude-review and skills/skills-codex-gemini-review are generated artifacts"
+    "generated_policy": "skills/skills-codex-claude-review is a generated artifact"
   },
   "variants": {
     "codex-claude-review": {
@@ -18,28 +18,6 @@
         "aris-4-2-paper-figure",
         "aris-4-4-paper-write",
         "aris-4-6-auto-paper-improvement-loop"
-      ]
-    },
-    "codex-gemini-review": {
-      "source_root": "skills/skills-codex",
-      "target_root": "skills/skills-codex-gemini-review",
-      "transform_profile": "gemini_review",
-      "targets": [
-        "aris-0-2-idea-discovery",
-        "aris-1-4-idea-creator",
-        "aris-1-5-novelty-check",
-        "aris-1-6-research-review",
-        "aris-1-7-research-refine",
-        "aris-3-1-auto-review-loop",
-        "aris-4-1-paper-plan",
-        "aris-4-2-paper-figure",
-        "aris-4-4-paper-write",
-        "aris-4-6-auto-paper-improvement-loop",
-        "aris-4-7-paper-writing",
-        "aris-5-2-paper-slides",
-        "aris-5-3-paper-poster",
-        "aris-5-4-grant-proposal",
-        "aris-8-1-idea-discovery-robot"
       ]
     }
   }

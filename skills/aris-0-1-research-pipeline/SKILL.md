@@ -26,6 +26,19 @@ Prefer these staged markdown artifacts throughout the pipeline:
 
 Fallback to legacy names only when the canonical prefixed file is absent.
 
+## State Persistence Contract
+
+At every stage boundary, update project `CLAUDE.md` → `## Pipeline Status` with:
+- current `stage`
+- active idea
+- running tasks / training status
+- next action
+
+On session recovery, prioritize reads in this order:
+1. `CLAUDE.md` (`## Pipeline Status`)
+2. `02_EXPERIMENT_TRACKER.md` / `02_EXPERIMENT_RESULTS.md`
+3. `03_AUTO_REVIEW.md` + `REVIEW_STATE.json` (if present)
+
 ## Constants
 
 - **AUTO_PROCEED = true** — When `true`, Gate 1 auto-selects the top-ranked idea (highest pilot signal + novelty confirmed) and continues to implementation. When `false`, always waits for explicit user confirmation before proceeding.

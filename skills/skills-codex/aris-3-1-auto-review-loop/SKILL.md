@@ -63,6 +63,13 @@ Long-running loops may hit the context window limit, triggering automatic compac
 
 **On completion** (positive assessment or max rounds), set `"status": "completed"` with a non-empty `stop_reason`.
 
+## Session Recovery Discipline
+
+Treat `REVIEW_STATE.json` + `03_AUTO_REVIEW.md` as the authoritative recovery pair. After each round:
+- append full round log to `03_AUTO_REVIEW.md`
+- overwrite `REVIEW_STATE.json` with latest state
+- update `CLAUDE.md` `## Pipeline Status` next action
+
 ## Stop Criteria (ordered)
 
 1. Success threshold reached (score + explicit ready verdict + no primary unsupported claim).
@@ -181,13 +188,6 @@ Wait for the user's response. Parse their input:
 - **Skip specific fixes** ("skip 1,3"): remove those fixes from the action list
 - **Stop** ("stop", "enough", "done"): terminate the loop, jump to Termination
 
-#### Feishu Notification (if configured)
-
-After parsing the score, check if `~/.claude/feishu.json` exists and mode is not `"off"`:
-- Send a `review_scored` notification: "Round N: X/10 — [verdict]" with top 3 weaknesses
-- If **interactive** mode and verdict is "almost": send as checkpoint, wait for user reply on whether to continue or stop
-- If config absent or mode off: skip entirely (no-op)
-
 #### Phase C: Implement Fixes (if not stopping)
 
 For each action item (highest priority first):
@@ -277,7 +277,6 @@ When loop ends (positive assessment or max rounds):
    - List remaining blockers
    - Estimate effort needed for each
    - Suggest whether to continue manually or pivot
-5. **Feishu notification** (if configured): Send `pipeline_done` with final score progression table
 
 ## Key Rules
 

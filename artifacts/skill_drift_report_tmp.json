@@ -1,7 +1,7 @@
 {
   "report": {
-    "base_count": 45,
-    "codex_count": 42,
+    "base_count": 42,
+    "codex_count": 39,
     "missing_in_codex": [
       "aris-1-3-semantic-scholar",
       "aris-2-5-vast-gpu",
@@ -28,8 +28,6 @@
       "aris-3-1-auto-review-loop",
       "aris-3-2-result-to-claim",
       "aris-3-3-analyze-results",
-      "aris-3-4-auto-review-loop-llm",
-      "aris-3-5-auto-review-loop-minimax",
       "aris-4-1-paper-plan",
       "aris-4-2-paper-figure",
       "aris-4-3-paper-illustration",
@@ -47,7 +45,6 @@
       "aris-8-3-dse-loop",
       "aris-8-4-formula-derivation",
       "aris-8-5-proof-writer",
-      "aris-9-1-feishu-notify",
       "aris-9-2-mermaid-diagram",
       "aris-9-3-pixel-art",
       "aris-9-5-improve-loop"

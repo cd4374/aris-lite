@@ -194,11 +194,16 @@ Present results in a comparison table:
 - Flag unexpected results (negative delta, NaN, divergence)
 - Suggest next steps based on findings
 
-### Step 6: Feishu Notification (if configured)
+## Watchdog Integration (Optional but Useful)
 
-After results are collected, check `~/.claude/feishu.json`:
-- Send `experiment_done` notification: results summary table, delta vs baseline
-- If config absent or mode `"off"`: skip entirely (no-op)
+If `tools/watchdog.py` is running on the target server, always check:
+
+```bash
+ssh <server> "cat /tmp/aris-watchdog/status/summary.txt"
+ssh <server> "tail -20 /tmp/aris-watchdog/alerts.log"
+```
+
+Use watchdog as 24/7 health signal (DEAD/IDLE/STALLED/SLOW), and use this skill for deeper diagnosis and result interpretation.
 
 ## Key Rules
 

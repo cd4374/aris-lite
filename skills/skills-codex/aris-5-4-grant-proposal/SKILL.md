@@ -425,7 +425,7 @@ Invoke `/aris-1-6-research-review` on the complete draft for grant-type-specific
 - Provides ranked action items for improvement
 - All feedback saved to `grant-proposal/GRANT_REVIEW.md`
 
-> ⚠️ **Codex MCP fallback**: If `mcp__codex__codex` is not available (no OpenAI API key), skip external review. Note "External review skipped — no Codex MCP available. Consider running `/aris-3-4-auto-review-loop-llm` separately." in GRANT_REVIEW.md. The proposal is still usable without external review.
+> ⚠️ **Codex MCP fallback**: If `mcp__codex__codex` is not available (no OpenAI API key), skip external review. Note "External review skipped — no Codex MCP available." in GRANT_REVIEW.md. The proposal is still usable without external review.
 
 If `/aris-1-6-research-review` is invoked (preferred), it handles the Codex call internally. If calling Codex directly (e.g., to maintain thread context from Phase 2):
 
@@ -568,7 +568,6 @@ What would you like to do next?
 - **Preliminary data de-risks.** Include any pilot results, existing datasets, or prior publications that demonstrate feasibility.
 - **Reviewer-facing structure.** Bold key sentences. Use numbered lists for clarity. Make the reviewer's job easy.
 - **Cultural norms matter.** KAKENHI expects 社会的意義; NSF expects Broader Impacts; NSFC expects 国际前沿 positioning. Missing these is a red flag for reviewers.
-- **Feishu notifications are optional.** If `~/.claude/feishu.json` exists, send `checkpoint` at each phase transition and `pipeline_done` at final output. If absent, skip silently.
 
 ## Parameter Pass-Through
 

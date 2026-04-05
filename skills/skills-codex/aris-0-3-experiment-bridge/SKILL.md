@@ -43,6 +43,13 @@ This skill expects one or more of:
 
 If none exist, ask the user what experiments to implement.
 
+## State + Handoff Rules
+
+Before handing off to `/aris-3-1-auto-review-loop`, ensure:
+- `02_EXPERIMENT_TRACKER.md` reflects latest run status
+- `02_EXPERIMENT_RESULTS.md` contains key metrics and baseline deltas
+- `CLAUDE.md` `## Pipeline Status` marks current stage and next action
+
 ## Workflow
 
 ### Phase 1: Parse the Experiment Plan

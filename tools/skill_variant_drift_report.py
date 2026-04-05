@@ -44,8 +44,6 @@ def normalize_tool_tokens(text: str) -> str:
     text = re.sub(r"mcp__codex__codex", "<REVIEW_TOOL>", text)
     text = re.sub(r"mcp__claude-review__review_reply_start", "<REVIEW_REPLY_TOOL>", text)
     text = re.sub(r"mcp__claude-review__review_start", "<REVIEW_TOOL>", text)
-    text = re.sub(r"mcp__gemini-review__review_reply_start", "<REVIEW_REPLY_TOOL>", text)
-    text = re.sub(r"mcp__gemini-review__review_start", "<REVIEW_TOOL>", text)
     return text
 
 

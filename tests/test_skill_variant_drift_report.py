@@ -39,11 +39,11 @@ class TestSkillVariantDriftReport(unittest.TestCase):
             self.assertIn("priorities", payload["report"])
             self.assertIn("substantial_top", payload["report"])
 
-            self.assertEqual(payload["report"]["base_count"], 45)
-            self.assertEqual(payload["report"]["codex_count"], 42)
+            self.assertEqual(payload["report"]["base_count"], 42)
+            self.assertEqual(payload["report"]["codex_count"], 39)
             self.assertEqual(len(payload["report"]["missing_in_codex"]), 3)
             self.assertEqual(len(payload["report"]["content_diff"]), 0)
-            self.assertEqual(len(payload["report"]["same_content"]), 42)
+            self.assertEqual(len(payload["report"]["same_content"]), 39)
 
             priority_text = priority_out.read_text(encoding="utf-8")
             self.assertIn("convergence priority", priority_text)
@@ -112,7 +112,6 @@ class TestSkillVariantDriftReport(unittest.TestCase):
                             "aris-8-3-dse-loop",
                             "aris-8-4-formula-derivation",
                             "aris-8-5-proof-writer",
-                            "aris-9-1-feishu-notify",
                             "aris-9-2-mermaid-diagram",
                             "aris-9-3-pixel-art",
                         ],

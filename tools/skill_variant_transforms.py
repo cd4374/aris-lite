@@ -54,38 +54,8 @@ def _claude_profile() -> TransformProfile:
     )
 
 
-def _gemini_profile() -> TransformProfile:
-    return TransformProfile(
-        name="gemini_review",
-        override_note=(
-            "> Override for Codex users who want **Gemini**, not a second Codex agent, "
-            "to act as the reviewer. Install this package **after** `skills/skills-codex/*`."
-        ),
-        reviewer_line=(
-            "- **REVIEWER_MODEL = `gemini-review`** — Gemini reviewer invoked through the "
-            "local `gemini-review` MCP bridge. Set `GEMINI_REVIEW_MODEL` if you need a "
-            "specific Gemini model override."
-        ),
-        prereq_block="""## Prerequisites
-
-- Install the base Codex-native skills first: copy `skills/skills-codex/*` into `~/.codex/skills/`.
-- Then install this overlay package: copy `skills/skills-codex-gemini-review/*` into `~/.codex/skills/` and allow it to overwrite the same skill names.
-- Register the local reviewer bridge:
-  ```bash
-  codex mcp add gemini-review -- python3 ~/.codex/mcp-servers/gemini-review/server.py
-  ```
-- This gives Codex access to `mcp__gemini-review__review_start`, `mcp__gemini-review__review_reply_start`, and `mcp__gemini-review__review_status`.
-""".strip(),
-        review_start_tool="mcp__gemini-review__review_start",
-        review_reply_start_tool="mcp__gemini-review__review_reply_start",
-        review_status_tool="mcp__gemini-review__review_status",
-        backend_name="Gemini",
-    )
-
-
 TRANSFORM_PROFILES = {
     "claude_review": _claude_profile(),
-    "gemini_review": _gemini_profile(),
 }
 
 

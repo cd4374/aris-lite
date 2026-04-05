@@ -19,9 +19,8 @@ class TestSkillVariantManifest(unittest.TestCase):
         self.assertIn("variants", data)
         variants = data["variants"]
         self.assertIn("codex-claude-review", variants)
-        self.assertIn("codex-gemini-review", variants)
+        self.assertEqual(len(variants), 1)
         self.assertEqual(len(variants["codex-claude-review"]["targets"]), 8)
-        self.assertEqual(len(variants["codex-gemini-review"]["targets"]), 15)
 
 
 class TestSkillVariantGenerator(unittest.TestCase):
@@ -38,7 +37,7 @@ class TestSkillVariantGenerator(unittest.TestCase):
         result = self.run_cmd("--list")
         self.assertEqual(result.returncode, 0, msg=result.stderr)
         self.assertIn("codex-claude-review", result.stdout)
-        self.assertIn("codex-gemini-review", result.stdout)
+        self.assertIn("skills: 8", result.stdout)
 
     def test_check_no_drift(self):
         result = self.run_cmd("--check")
@@ -46,14 +45,14 @@ class TestSkillVariantGenerator(unittest.TestCase):
         self.assertIn("ok: no drift", result.stdout)
 
     def test_write_is_deterministic_for_overlay_file(self):
-        target = REPO_ROOT / "skills" / "skills-codex-gemini-review" / "aris-4-1-paper-plan" / "SKILL.md"
+        target = REPO_ROOT / "skills" / "skills-codex-claude-review" / "aris-4-1-paper-plan" / "SKILL.md"
 
         before_hash = hashlib.sha256(target.read_bytes()).hexdigest()
 
-        first = self.run_cmd("--variant", "codex-gemini-review", "--write")
+        first = self.run_cmd("--variant", "codex-claude-review", "--write")
         self.assertEqual(first.returncode, 0, msg=first.stdout + "\n" + first.stderr)
 
-        second = self.run_cmd("--variant", "codex-gemini-review", "--write")
+        second = self.run_cmd("--variant", "codex-claude-review", "--write")
         self.assertEqual(second.returncode, 0, msg=second.stdout + "\n" + second.stderr)
 
         after_hash = hashlib.sha256(target.read_bytes()).hexdigest()
